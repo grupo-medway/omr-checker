@@ -70,6 +70,7 @@ TEMPLATE_SCHEMA = {
                     "name": {
                         "type": "string",
                         "enum": [
+                            "CornerAlignment",
                             "CropOnMarkers",
                             "CropPage",
                             "FeatureBasedAlignment",
@@ -81,6 +82,24 @@ TEMPLATE_SCHEMA = {
                 },
                 "required": ["name", "options"],
                 "allOf": [
+                    {
+                        "if": {"properties": {"name": {"const": "CornerAlignment"}}},
+                        "then": {
+                            "properties": {
+                                "options": {
+                                    "type": "object", 
+                                    "additionalProperties": False,
+                                    "properties": {
+                                        "reference": {"type": "string"},
+                                        "markerThreshold": {"type": "integer"},
+                                        "minArea": {"type": "integer"},
+                                        "maxArea": {"type": "integer"}
+                                    },
+                                    "required": ["reference"]
+                                }
+                            }
+                        },
+                    },
                     {
                         "if": {"properties": {"name": {"const": "CropOnMarkers"}}},
                         "then": {

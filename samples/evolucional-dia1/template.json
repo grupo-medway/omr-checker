@@ -7,6 +7,17 @@
     25,
     25
   ],
+  "preProcessors": [
+    {
+      "name": "FeatureBasedAlignment",
+      "options": {
+        "reference": "template_reference.jpg",
+        "2d": true,
+        "maxFeatures": 1000,
+        "goodMatchPercent": 0.15
+      }
+    }
+  ],
   "customLabels": {
     "matricula": [
       "matricula1..7"

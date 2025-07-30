@@ -7,7 +7,31 @@ from src.logger import logger
 from src.utils.image import ImageUtils
 
 # Check if running in headless environment
-IS_HEADLESS = os.environ.get('DISPLAY') is None and not os.environ.get('RAILWAY_ENVIRONMENT')
+# More robust detection for macOS and other systems
+def detect_headless():
+    # Allow forcing GUI mode via environment variable
+    if os.environ.get('FORCE_GUI', '').lower() in ['true', '1', 'yes']:
+        return False
+    
+    # Check for explicit headless indicators
+    if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('CI'):
+        return True
+    
+    # For macOS and Linux with GUI, try to detect display capability
+    try:
+        import platform
+        if platform.system() == 'Darwin':  # macOS
+            # On macOS, OpenCV can usually show windows even without DISPLAY
+            return False
+        elif os.environ.get('DISPLAY') is None:
+            # On Linux, DISPLAY is more reliable
+            return True
+        else:
+            return False
+    except Exception:
+        return True
+
+IS_HEADLESS = detect_headless()
 
 if not IS_HEADLESS:
     try:
