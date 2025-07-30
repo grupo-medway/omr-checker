@@ -14,7 +14,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-
 @app.get("/")
 async def root():
     return {"message": "OMRChecker API está rodando!"}
