@@ -1,18 +1,34 @@
 from dataclasses import dataclass
+import os
 
 import cv2
-from screeninfo import get_monitors
 
 from src.logger import logger
 from src.utils.image import ImageUtils
 
-monitor_window = get_monitors()[0]
+# Check if running in headless environment
+IS_HEADLESS = os.environ.get('DISPLAY') is None and not os.environ.get('RAILWAY_ENVIRONMENT')
+
+if not IS_HEADLESS:
+    try:
+        from screeninfo import get_monitors
+        monitor_window = get_monitors()[0]
+    except Exception:
+        # Fallback for environments without display
+        IS_HEADLESS = True
+        monitor_window = None
+else:
+    monitor_window = None
 
 
 @dataclass
 class ImageMetrics:
     # TODO: Move TEXT_SIZE, etc here and find a better class name
-    window_width, window_height = monitor_window.width, monitor_window.height
+    if monitor_window:
+        window_width, window_height = monitor_window.width, monitor_window.height
+    else:
+        # Default values for headless environment
+        window_width, window_height = 1920, 1080
     # for positioning image windows
     window_x, window_y = 0, 0
     reset_pos = [0, 0]
@@ -25,6 +41,10 @@ class InteractionUtils:
 
     @staticmethod
     def show(name, origin, pause=1, resize=False, reset_pos=None, config=None):
+        # Skip display in headless environment
+        if IS_HEADLESS or monitor_window is None:
+            return
+            
         image_metrics = InteractionUtils.image_metrics
         if origin is None:
             logger.info(f"'{name}' - NoneType image to show!")
@@ -91,6 +111,10 @@ class Stats:
 
 
 def wait_q():
+    # Skip wait in headless environment
+    if IS_HEADLESS or monitor_window is None:
+        return
+        
     esc_key = 27
     while cv2.waitKey(1) & 0xFF not in [ord("q"), esc_key]:
         pass
@@ -99,6 +123,10 @@ def wait_q():
 
 def is_window_available(name: str) -> bool:
     """Checks if a window is available"""
+    # Always return False in headless environment
+    if IS_HEADLESS or monitor_window is None:
+        return False
+        
     try:
         cv2.getWindowProperty(name, cv2.WND_PROP_VISIBLE)
         return True

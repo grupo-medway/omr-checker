@@ -2,6 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Set environment variable to indicate Railway environment
+ENV RAILWAY_ENVIRONMENT=true
+
 # Instalar dependências do sistema necessárias para o OpenCV
 RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
