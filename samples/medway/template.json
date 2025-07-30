@@ -1,0 +1,124 @@
+{
+  "pageDimensions": [
+    1132,
+    1600
+  ],
+  "bubbleDimensions": [
+    25,
+    25
+  ],
+  "customLabels": {
+    "Matricula": [
+      "matricula1..7"
+    ]
+  },
+  "emptyValue": "",
+  "fieldBlocks": {
+    "Matricula": {
+      "fieldType": "QTYPE_INT",
+      "fieldLabels": [
+        "matricula1..7"
+      ],
+      "bubbleDimensions": [32, 27],
+      "bubblesGap": 27,
+      "labelsGap": 32,
+      "origin": [
+        862,
+        192
+      ],
+      "emptyValue": "X"
+    },
+    "Lingua": {
+      "fieldType": "QTYPE_IDIOMA",
+      "fieldLabels": [
+        "lingua1"
+      ],
+      "bubbleDimensions": [22, 22],
+      "bubblesGap": 23,
+      "labelsGap": 25,
+      "origin": [
+        683,
+        315
+      ],
+      "emptyValue": "X"
+    },
+    "Bloco1": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q1..15"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        80,
+        1000
+      ]
+    },
+    "Bloco2": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q16..30"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        250,
+        1000
+      ]
+    },
+    "Bloco3": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q31..45"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        420,
+        1000
+      ]
+    },
+    "Bloco4": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q46..60"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        610,
+        1000
+      ]
+    },
+    "Bloco5": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q61..75"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        780,
+        1000
+      ]
+    },
+    "Bloco6": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q76..90"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        955,
+        1000
+      ]
+    }
+  }
+}
