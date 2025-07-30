@@ -8,13 +8,13 @@
     25
   ],
   "customLabels": {
-    "Matricula": [
+    "matricula": [
       "matricula1..7"
     ]
   },
   "emptyValue": "",
   "fieldBlocks": {
-    "Matricula": {
+    "matricula": {
       "fieldType": "QTYPE_INT",
       "fieldLabels": [
         "matricula1..7"
@@ -28,10 +28,10 @@
       ],
       "emptyValue": "X"
     },
-    "Lingua": {
+    "lingua": {
       "fieldType": "QTYPE_IDIOMA",
       "fieldLabels": [
-        "lingua1"
+        "lingua"
       ],
       "bubbleDimensions": [22, 22],
       "bubblesGap": 23,
