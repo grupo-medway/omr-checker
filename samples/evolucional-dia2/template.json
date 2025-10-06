@@ -1,0 +1,121 @@
+{
+  "pageDimensions": [
+    1132,
+    1600
+  ],
+  "bubbleDimensions": [
+    25,
+    25
+  ],
+  "preProcessors": [
+    {
+      "name": "FeatureBasedAlignment",
+      "options": {
+        "reference": "template_reference.jpg",
+        "2d": true,
+        "maxFeatures": 1000,
+        "goodMatchPercent": 0.15
+      }
+    }
+  ],
+  "customLabels": {
+    "matricula": [
+      "matricula1..7"
+    ]
+  },
+  "emptyValue": "",
+  "fieldBlocks": {
+    "matricula": {
+      "fieldType": "QTYPE_INT",
+      "fieldLabels": [
+        "matricula1..7"
+      ],
+      "bubbleDimensions": [32, 27],
+      "bubblesGap": 27,
+      "labelsGap": 32,
+      "origin": [
+        862,
+        192
+      ],
+      "emptyValue": "X"
+    },
+    "Bloco1": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q91..105"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        80,
+        1000
+      ]
+    },
+    "Bloco2": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q106..120"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        250,
+        800
+      ]
+    },
+    "Bloco3": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q121..135"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        420,
+        1000
+      ]
+    },
+    "Bloco4": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q136..150"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        610,
+        1000
+      ]
+    },
+    "Bloco5": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q151..165"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        780,
+        1000
+      ]
+    },
+    "Bloco6": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q166..180"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 26,
+      "labelsGap": 29,
+      "origin": [
+        955,
+        1000
+      ]
+    }
+  }
+}

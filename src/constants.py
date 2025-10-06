@@ -41,6 +41,10 @@ FIELD_TYPES = {
         "bubbleValues": ["ING", "ESP"],  # ou ["EN", "ES"]
         "direction": "vertical",
     },
+    "QTYPE_YEAR": {
+        "bubbleValues": ["`1°Ano`", "`2°Ano`", "`3°Ano`"],  # ou ["EN", "ES"]
+        "direction": "horizontal",
+    },
     #
     # You can create and append custom field types here-
     #
