@@ -1,0 +1,155 @@
+{
+  "pageDimensions": [
+    1132,
+    1600
+  ],
+  "bubbleDimensions": [
+    25,
+    25
+  ],
+  "preProcessors": [
+    {
+      "name": "FeatureBasedAlignment",
+      "options": {
+        "reference": "template_reference.jpg",
+        "2d": true,
+        "maxFeatures": 1000,
+        "goodMatchPercent": 0.15
+      }
+    }
+  ],
+  "emptyValue": "*",
+  "fieldBlocks": {
+    "lingua": {
+      "fieldType": "QTYPE_IDIOMA_HORIZONTAL",
+      "fieldLabels": [
+        "lingua"
+      ],
+      "bubbleDimensions": [24, 24],
+      "bubblesGap": 82,
+      "labelsGap": 25,
+      "origin": [
+        208,
+        563
+      ],
+      "emptyValue": "X"
+    },
+    "Bloco1": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q91..100"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 42,
+      "labelsGap": 24.5,
+      "origin": [
+        180,
+        605
+      ]
+    },
+    "Bloco2": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q101..110"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 42,
+      "labelsGap": 24.5,
+      "origin": [
+        180,
+        868
+      ]
+    },
+    "Bloco3": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q111..120"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 42,
+      "labelsGap": 24.5,
+      "origin": [
+        180,
+        1131
+      ]
+    },
+    "Bloco4": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q121..130"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 42,
+      "labelsGap": 24.5,
+      "origin": [
+        492,
+        344
+      ]
+    },
+    "Bloco5": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q131..140"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 42,
+      "labelsGap": 24.5,
+      "origin": [
+        492,
+        605
+      ]
+    },
+    "Bloco6": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q141..150"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 42,
+      "labelsGap": 24.5,
+      "origin": [
+        492,
+        868
+      ]
+    },
+    "Bloco7": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q151..160"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 42,
+      "labelsGap": 24.5,
+      "origin": [
+        492,
+        1131
+      ]
+    },
+    "Bloco8": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q161..170"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 42,
+      "labelsGap": 24.5,
+      "origin": [
+        804,
+        344
+      ]
+    },
+    "Bloco9": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": [
+        "q171..180"
+      ],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubblesGap": 42,
+      "labelsGap": 24.5,
+      "origin": [
+        804,
+        605
+      ]
+    }
+  }
+}

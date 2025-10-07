@@ -38,11 +38,15 @@ FIELD_TYPES = {
         "direction": "horizontal",
     },
     "QTYPE_IDIOMA": {
-        "bubbleValues": ["ING", "ESP"],  # ou ["EN", "ES"]
+        "bubbleValues": ["ING", "ESP"],
         "direction": "vertical",
     },
+    "QTYPE_IDIOMA_HORIZONTAL": {
+        "bubbleValues": ["ING", "ESP"],
+        "direction": "horizontal",
+    },
     "QTYPE_YEAR": {
-        "bubbleValues": ["`1°Ano`", "`2°Ano`", "`3°Ano`"],  # ou ["EN", "ES"]
+        "bubbleValues": ["`1°Ano`", "`2°Ano`", "`3°Ano`"],
         "direction": "horizontal",
     },
     #
