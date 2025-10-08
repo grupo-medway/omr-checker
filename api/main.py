@@ -3,14 +3,18 @@ from typing import Optional
 
 import tempfile
 
-from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from sqlmodel import Session
 
 from api.db import get_settings, init_db
 from api.models import ErrorResponse, ProcessResponse
+from api.routes import audits_router
 from api.services import OMRProcessor
 from api.utils import FileHandler
 from api.utils.storage import ensure_storage_dirs
+from api.db.session import get_session
 
 
 settings = get_settings()
@@ -20,6 +24,11 @@ app = FastAPI(
     description="API para processamento de gabaritos OMR",
     version="1.0.0",
 )
+
+
+ensure_storage_dirs(settings)
+app.mount("/static", StaticFiles(directory=settings.static_root), name="static")
+app.include_router(audits_router)
 
 
 @app.on_event("startup")
@@ -58,6 +67,7 @@ async def process_omr(
     file: UploadFile = File(..., description="Arquivo ZIP com as imagens dos gabaritos"),
     template: str = Form(..., description="Nome do template a ser usado"),
     audit_token: Optional[str] = Header(default=None, alias="X-Audit-Token"),
+    session: Session = Depends(get_session),
 ):
     """Processa um conjunto de imagens OMR usando o template especificado."""
 
@@ -108,6 +118,8 @@ async def process_omr(
             image_files=image_files,
             template_name=template,
             temp_dir=str(temp_dir),
+            session=session,
+            settings=settings,
         )
 
         return response
