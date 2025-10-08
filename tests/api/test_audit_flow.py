@@ -9,7 +9,11 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from api.db.models import AuditItem, BatchStatus
-from api.services.audit_registry import ProcessedRecord, register_audit_batch, reconcile_batch
+from api.services.audit_registry import (
+    ProcessedRecord,
+    register_audit_batch,
+    reconcile_batch,
+)
 from api.utils.storage import ensure_storage_dirs
 
 
@@ -110,7 +114,9 @@ def test_register_audit_batch_creates_pending_items(api_client, tmp_path):
         assert any("q2" in issue for issue in item.issues)
         assert item.image_path is not None
 
-        exported = reconcile_batch(session, settings, batch_id=batch_id, exported_by="tester")
+        exported = reconcile_batch(
+            session, settings, batch_id=batch_id, exported_by="tester"
+        )
         assert exported is not None
         assert exported.corrected_csv.exists()
         assert exported.manifest_path.exists()
@@ -251,3 +257,201 @@ def test_decision_endpoint_updates_responses(api_client, tmp_path):
 
     assert not (settings.exports_dir / batch_id).exists()
     assert not (settings.results_dir / batch_id).exists()
+
+
+def test_decision_rejects_invalid_answer_values(api_client, tmp_path):
+    """Test that invalid answer values are rejected."""
+    client, settings, db_session_module = api_client
+
+    batch_id = "batch-validation"
+    results_dir = tmp_path / "outputs"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = results_dir / "Results.csv"
+
+    original_image = tmp_path / "file3.png"
+    original_image.write_bytes(b"original")
+    marked_image = tmp_path / "file3_marked.png"
+    marked_image.write_bytes(b"marked")
+
+    _create_csv(
+        csv_path,
+        [
+            {
+                "file_id": "file3.png",
+                "input_path": str(original_image),
+                "output_path": str(marked_image),
+                "score": "0",
+                "matricula": "789",
+                "lingua": "PT",
+                "q1": "",
+                "q2": "",
+            }
+        ],
+    )
+
+    record = ProcessedRecord(
+        file_id="file3.png",
+        answers={"matricula": "789", "lingua": "PT", "q1": "", "q2": ""},
+        question_keys=["q1", "q2"],
+        marked_image_path=marked_image,
+    )
+
+    with Session(db_session_module.engine) as session:
+        summary = register_audit_batch(
+            session,
+            settings,
+            template="template",
+            batch_id=batch_id,
+            csv_path=csv_path,
+            records=[record],
+            originals={"file3.png": original_image},
+        )
+
+    item_id = summary.items[0].id
+
+    # Test invalid answer values
+    invalid_responses = [
+        {"answers": {"q1": "F"}},  # Invalid letter
+        {"answers": {"q1": "AB"}},  # Multiple letters
+        {"answers": {"q1": "1"}},  # Number
+        {"answers": {"q1": "INVALID"}},  # Random string
+        {"answers": {"q1": "X"}},  # Invalid letter
+    ]
+
+    for invalid_payload in invalid_responses:
+        response = client.post(
+            f"/api/audits/{item_id}/decision",
+            json=invalid_payload,
+        )
+        # API must reject invalid answer values with HTTP 400
+        assert response.status_code == 400
+        json_response = response.json()
+        # Error may be in 'detail' (FastAPI) or 'error' (our handler)
+        error_text = str(
+            json_response.get("detail", "") or json_response.get("error", "")
+        ).lower()
+        assert (
+            "inválidos" in error_text or "invalid" in error_text
+        ), f"Unexpected error: {json_response}"
+
+
+def test_export_requires_audit_user_header(api_client, tmp_path):
+    """Test that export endpoint requires X-Audit-User header."""
+    client, settings, db_session_module = api_client
+
+    batch_id = "batch-header-test"
+    results_dir = tmp_path / "outputs"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = results_dir / "Results.csv"
+
+    original_image = tmp_path / "file4.png"
+    original_image.write_bytes(b"original")
+    marked_image = tmp_path / "file4_marked.png"
+    marked_image.write_bytes(b"marked")
+
+    _create_csv(
+        csv_path,
+        [
+            {
+                "file_id": "file4.png",
+                "input_path": str(original_image),
+                "output_path": str(marked_image),
+                "score": "0",
+                "matricula": "999",
+                "lingua": "PT",
+                "q1": "A",
+                "q2": "B",
+            }
+        ],
+    )
+
+    record = ProcessedRecord(
+        file_id="file4.png",
+        answers={"matricula": "999", "lingua": "PT", "q1": "A", "q2": "B"},
+        question_keys=["q1", "q2"],
+        marked_image_path=marked_image,
+    )
+
+    with Session(db_session_module.engine) as session:
+        register_audit_batch(
+            session,
+            settings,
+            template="template",
+            batch_id=batch_id,
+            csv_path=csv_path,
+            records=[record],
+            originals={"file4.png": original_image},
+        )
+
+    # Try export without X-Audit-User header
+    response = client.get(
+        "/api/audits/export",
+        params={"batch_id": batch_id, "format": "json"},
+    )
+    assert response.status_code == 400
+    json_response = response.json()
+    # FastAPI may wrap error in 'detail' key or in 'error' key from our handler
+    error_msg = json_response.get("detail") or json_response.get("error") or ""
+    assert "X-Audit-User" in error_msg or "obrigatório" in error_msg
+
+
+def test_cleanup_requires_confirmation(api_client, tmp_path):
+    """Test that cleanup requires explicit confirmation."""
+    client, settings, db_session_module = api_client
+
+    batch_id = "batch-cleanup-test"
+    results_dir = tmp_path / "outputs"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = results_dir / "Results.csv"
+
+    original_image = tmp_path / "file5.png"
+    original_image.write_bytes(b"original")
+    marked_image = tmp_path / "file5_marked.png"
+    marked_image.write_bytes(b"marked")
+
+    _create_csv(
+        csv_path,
+        [
+            {
+                "file_id": "file5.png",
+                "input_path": str(original_image),
+                "output_path": str(marked_image),
+                "score": "0",
+                "matricula": "111",
+                "lingua": "PT",
+                "q1": "A",
+                "q2": "B",
+            }
+        ],
+    )
+
+    record = ProcessedRecord(
+        file_id="file5.png",
+        answers={"matricula": "111", "lingua": "PT", "q1": "A", "q2": "B"},
+        question_keys=["q1", "q2"],
+        marked_image_path=marked_image,
+    )
+
+    with Session(db_session_module.engine) as session:
+        register_audit_batch(
+            session,
+            settings,
+            template="template",
+            batch_id=batch_id,
+            csv_path=csv_path,
+            records=[record],
+            originals={"file5.png": original_image},
+        )
+
+    # Try cleanup without confirmation
+    response = client.post(
+        "/api/audits/cleanup",
+        json={"batch_id": batch_id, "confirm": False},
+        headers={"X-Audit-User": "tester"},
+    )
+    assert response.status_code == 400
+    json_response = response.json()
+    error_msg = (
+        json_response.get("detail") or json_response.get("error") or ""
+    ).lower()
+    assert "confirmação" in error_msg or "confirm" in error_msg

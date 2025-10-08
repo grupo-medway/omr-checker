@@ -32,6 +32,12 @@ from api.services.audit_registry import (
     invalidate_batch_export,
     reconcile_batch,
 )
+from api.utils.validators import (
+    sanitize_user_input,
+    validate_answer_value,
+    validate_audit_user,
+    validate_batch_id,
+)
 
 
 router = APIRouter(prefix="/api/audits", tags=["auditoria"])
@@ -52,8 +58,17 @@ def _require_user(
 ) -> str:
     user = (audit_user or "").strip()
     if not user:
-        raise HTTPException(status_code=400, detail="Cabeçalho X-Audit-User é obrigatório")
-    return user
+        raise HTTPException(
+            status_code=400, detail="Cabeçalho X-Audit-User é obrigatório"
+        )
+
+    if not validate_audit_user(user):
+        raise HTTPException(
+            status_code=400,
+            detail="Cabeçalho X-Audit-User contém caracteres inválidos",
+        )
+
+    return sanitize_user_input(user, max_length=64)
 
 
 def _public_url(path: Optional[str]) -> Optional[str]:
@@ -198,6 +213,8 @@ def export_batch(
     user: str = Depends(_require_user),
     session: Session = Depends(get_session),
 ):
+    if not validate_batch_id(batch_id):
+        raise HTTPException(status_code=400, detail="batch_id inválido ou perigoso")
     settings = get_settings()
     result = reconcile_batch(session, settings, batch_id=batch_id, exported_by=user)
 
@@ -207,7 +224,9 @@ def export_batch(
     batch = result.batch
 
     if batch.exported_at is None:
-        raise HTTPException(status_code=500, detail="Falha ao registrar exportação do lote")
+        raise HTTPException(
+            status_code=500, detail="Falha ao registrar exportação do lote"
+        )
 
     if format.lower() == "json":
         manifest = _load_manifest(result.manifest_path)
@@ -216,7 +235,8 @@ def export_batch(
             status=batch.status,
             exported_at=batch.exported_at,
             exported_by=batch.exported_by,
-            corrected_results_path=batch.corrected_results_path or result.corrected_csv.name,
+            corrected_results_path=batch.corrected_results_path
+            or result.corrected_csv.name,
             manifest_path=batch.manifest_path or result.manifest_path.name,
             manifest=manifest,
         )
@@ -238,7 +258,12 @@ def cleanup_batch_endpoint(
     session: Session = Depends(get_session),
 ):
     if not payload.confirm:
-        raise HTTPException(status_code=400, detail="Confirme a limpeza definindo 'confirm' para true")
+        raise HTTPException(
+            status_code=400, detail="Confirme a limpeza definindo 'confirm' para true"
+        )
+
+    if not validate_batch_id(payload.batch_id):
+        raise HTTPException(status_code=400, detail="batch_id inválido ou perigoso")
 
     settings = get_settings()
 
@@ -296,11 +321,28 @@ def submit_decision(
             detail=f"Questões inválidas para este item: {', '.join(invalid_questions)}",
         )
 
+    # Validate answer values
+    invalid_answers = {
+        question: value
+        for question, value in payload.answers.items()
+        if value and not validate_answer_value(value)
+    }
+    if invalid_answers:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Valores de resposta inválidos: {invalid_answers}",
+        )
+
     for question, value in payload.answers.items():
         response = responses_map[question]
         response.corrected_value = value or None
 
-    item.notes = payload.notes
+    # Sanitize notes
+    item.notes = (
+        sanitize_user_input(payload.notes or "", max_length=512)
+        if payload.notes
+        else None
+    )
     item.status = AuditStatus.RESOLVED
     item.exported_at = None
 

@@ -40,7 +40,7 @@ PROBLEM_VALUES = {
 
 VALID_ALTERNATIVES = {"A", "B", "C", "D", "E"}
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("api.audit_registry")
 
 
 _BATCH_LOCKS: Dict[str, Lock] = {}
@@ -123,6 +123,7 @@ def register_audit_batch(
     originals: Dict[str, Path],
 ) -> AuditSummary:
     records = list(records)
+    logger.info(f"Registrando auditoria: batch_id={batch_id}, template={template}, total={len(records)}")
 
     if not records:
         return AuditSummary(
@@ -252,6 +253,7 @@ def reconcile_batch(
     exported_by: Optional[str] = None,
     force: bool = False,
 ) -> Optional[ReconciliationResult]:
+    logger.info(f"Reconciliando lote: batch_id={batch_id}, exported_by={exported_by}")
     with _acquire_batch_lock(batch_id):
         batch = session.exec(
             select(AuditBatch).where(AuditBatch.batch_id == batch_id)

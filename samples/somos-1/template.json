@@ -37,7 +37,7 @@
     "Bloco1": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": [
-        "q91..100"
+        "q1..10"
       ],
       "bubbleValues": ["A", "B", "C", "D", "E"],
       "bubblesGap": 42,
@@ -50,7 +50,7 @@
     "Bloco2": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": [
-        "q101..110"
+        "q11..20"
       ],
       "bubbleValues": ["A", "B", "C", "D", "E"],
       "bubblesGap": 42,
@@ -63,7 +63,7 @@
     "Bloco3": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": [
-        "q111..120"
+        "q21..30"
       ],
       "bubbleValues": ["A", "B", "C", "D", "E"],
       "bubblesGap": 42,
@@ -76,7 +76,7 @@
     "Bloco4": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": [
-        "q121..130"
+        "q31..40"
       ],
       "bubbleValues": ["A", "B", "C", "D", "E"],
       "bubblesGap": 42,
@@ -89,7 +89,7 @@
     "Bloco5": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": [
-        "q131..140"
+        "q41..50"
       ],
       "bubbleValues": ["A", "B", "C", "D", "E"],
       "bubblesGap": 42,
@@ -102,7 +102,7 @@
     "Bloco6": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": [
-        "q141..150"
+        "q51..60"
       ],
       "bubbleValues": ["A", "B", "C", "D", "E"],
       "bubblesGap": 42,
@@ -115,7 +115,7 @@
     "Bloco7": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": [
-        "q151..160"
+        "q61..70"
       ],
       "bubbleValues": ["A", "B", "C", "D", "E"],
       "bubblesGap": 42,
@@ -128,7 +128,7 @@
     "Bloco8": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": [
-        "q161..170"
+        "q71..80"
       ],
       "bubbleValues": ["A", "B", "C", "D", "E"],
       "bubblesGap": 42,
@@ -141,7 +141,7 @@
     "Bloco9": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": [
-        "q171..180"
+        "q81..90"
       ],
       "bubbleValues": ["A", "B", "C", "D", "E"],
       "bubblesGap": 42,
