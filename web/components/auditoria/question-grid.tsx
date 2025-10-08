@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { AuditResponseModel } from "@/lib/api/types";
+import { normalizeAnswer } from "@/lib/utils/normalize";
 
 const ANSWER_OPTIONS = ["A", "B", "C", "D", "E", "UNMARKED"] as const;
+const PAGE_SIZE = 60;
 
 type QuestionGridProps = {
   responses: AuditResponseModel[];
@@ -22,6 +24,7 @@ export function QuestionGrid({
   isSaving,
 }: QuestionGridProps) {
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
+  const [pageIndex, setPageIndex] = useState(0);
 
   const sortedResponses = useMemo(
     () =>
@@ -36,10 +39,26 @@ export function QuestionGrid({
   useEffect(() => {
     if (sortedResponses.length > 0) {
       setActiveQuestion(sortedResponses[0]?.question ?? null);
+      setPageIndex(0);
     } else {
       setActiveQuestion(null);
+      setPageIndex(0);
     }
   }, [sortedResponses]);
+
+  useEffect(() => {
+    if (!activeQuestion) return;
+    const questionIndex = sortedResponses.findIndex(
+      (response) => response.question === activeQuestion,
+    );
+    if (questionIndex === -1) {
+      return;
+    }
+    const targetPage = Math.floor(questionIndex / PAGE_SIZE);
+    if (targetPage !== pageIndex) {
+      setPageIndex(targetPage);
+    }
+  }, [activeQuestion, pageIndex, sortedResponses]);
 
   useEffect(() => {
     if (!activeQuestion) return;
@@ -59,21 +78,67 @@ export function QuestionGrid({
     return () => window.removeEventListener("keydown", handler);
   }, [activeQuestion, onChange]);
 
+  const pageCount = Math.max(1, Math.ceil(sortedResponses.length / PAGE_SIZE));
+  const pagedResponses = useMemo(
+    () =>
+      sortedResponses.slice(
+        pageIndex * PAGE_SIZE,
+        pageIndex * PAGE_SIZE + PAGE_SIZE,
+      ),
+    [pageIndex, sortedResponses],
+  );
+
+  const goToPage = (nextPage: number) => {
+    const clamped = Math.min(Math.max(nextPage, 0), pageCount - 1);
+    setPageIndex(clamped);
+    const firstQuestion = sortedResponses[clamped * PAGE_SIZE]?.question;
+    if (firstQuestion) {
+      setActiveQuestion(firstQuestion);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col gap-3">
       <header className="flex items-center justify-between text-sm text-muted-foreground">
         <p>
           Total de questões: <span className="font-semibold text-foreground">{responses.length}</span>
         </p>
-        <p className="hidden sm:block">Use teclas A–E ou 1–5 para definir respostas.</p>
+        <div className="flex items-center gap-3">
+          <p className="hidden text-xs sm:block">Use teclas A–E ou 1–5 para definir respostas.</p>
+          <div className="flex items-center gap-1 text-xs">
+            <button
+              type="button"
+              className="rounded-md border border-border/60 bg-background px-2 py-1 text-muted-foreground hover:border-primary/30"
+              onClick={() => goToPage(pageIndex - 1)}
+              disabled={pageIndex === 0}
+              aria-label="Página anterior de questões"
+            >
+              Anterior
+            </button>
+            <span className="text-muted-foreground">
+              {pageIndex + 1}/{pageCount}
+            </span>
+            <button
+              type="button"
+              className="rounded-md border border-border/60 bg-background px-2 py-1 text-muted-foreground hover:border-primary/30"
+              onClick={() => goToPage(pageIndex + 1)}
+              disabled={pageIndex >= pageCount - 1}
+              aria-label="Próxima página de questões"
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
       </header>
       <div className="grid max-h-[420px] grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-border/60 bg-card p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {sortedResponses.map((response) => {
+        {pagedResponses.map((response) => {
           const question = response.question;
           const readValue = response.read_value ?? "";
           const currentValue = currentAnswers[question] ?? readValue ?? "";
           const isIssue = issues.has(question);
-          const isDirty = currentValue !== (response.corrected_value ?? readValue ?? "");
+          const normalizedCurrent = normalizeAnswer(currentValue);
+          const normalizedBaseline = normalizeAnswer(response.corrected_value ?? readValue ?? "");
+          const isDirty = normalizedCurrent !== normalizedBaseline;
           const isActive = activeQuestion === question;
 
           return (
@@ -98,13 +163,14 @@ export function QuestionGrid({
 
               <div className="flex flex-wrap gap-1.5">
                 {ANSWER_OPTIONS.map((option) => {
-                  const selected = normalizeValue(option) === normalizeValue(currentValue);
+                  const selected = normalizeAnswer(option) === normalizedCurrent;
                   return (
                     <button
                       key={option}
                       type="button"
                       disabled={isSaving}
                       onClick={() => onChange(question, option)}
+                      aria-label={`Marcar resposta ${renderOptionLabel(option)} para ${question}`}
                       className={`rounded-md border px-2 py-1 text-xs font-medium transition ${
                         selected
                           ? "border-primary bg-primary/10 text-primary"
@@ -118,7 +184,7 @@ export function QuestionGrid({
               </div>
 
               <p className="text-[11px] text-muted-foreground">
-                Lido: {readValue || "∅"} • Atual: {currentValue || "∅"}
+                Lido: {readValue || "∅"} • Atual: {normalizedCurrent === "UNMARKED" ? "∅" : normalizedCurrent}
               </p>
             </article>
           );
@@ -132,11 +198,6 @@ function parseQuestionIndex(question: string) {
   const match = question.match(/\d+/g);
   if (!match) return Number.MAX_SAFE_INTEGER;
   return parseInt(match[0], 10);
-}
-
-function normalizeValue(value: string | null | undefined) {
-  if (!value) return "";
-  return value.toUpperCase();
 }
 
 function renderOptionLabel(option: string) {

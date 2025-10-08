@@ -26,6 +26,9 @@ import {
 } from "@/lib/api/types";
 import { useAuditCredentials } from "@/components/audit-credentials-provider";
 
+export const DEFAULT_PAGE_SIZE = 100;
+export const MAX_PAGE_SIZE = 100;
+
 export function useTemplatesQuery() {
   return useQuery({
     queryKey: ["templates"],
@@ -110,11 +113,14 @@ export function useSubmitDecisionMutation(
   auditId: number | null,
 ) {
   const queryClient = useQueryClient();
-  const { credentials } = useAuditCredentials();
+  const { credentials, hydrated } = useAuditCredentials();
 
   return useMutation({
     mutationKey: ["audit-decision", auditId],
     mutationFn: (payload: AuditDecisionRequest) => {
+      if (!hydrated || !credentials.user) {
+        throw new Error("Credenciais de auditoria não carregadas");
+      }
       if (!auditId) {
         throw new Error("Nenhum item selecionado");
       }
@@ -134,13 +140,13 @@ export function useSubmitDecisionMutation(
 export function useExportBatchMutation(batchId: string | null) {
   const { credentials } = useAuditCredentials();
 
-  return useMutation({
+  return useMutation<Blob, Error>({
     mutationKey: ["export-batch", batchId],
     mutationFn: async () => {
       if (!batchId) {
         throw new Error("Lote não selecionado");
       }
-      const blob = await exportBatch(batchId, credentials);
+      const blob = await exportBatch(batchId, credentials) as Blob;
       return blob;
     },
   });
@@ -199,7 +205,7 @@ export function useAuditIssues(detail: AuditDetail | undefined) {
   }, [detail]);
 }
 
-function clampPageSize(value?: number | null, fallback = 50) {
+function clampPageSize(value?: number | null, fallback = DEFAULT_PAGE_SIZE) {
   const numeric = typeof value === "number" && !Number.isNaN(value) ? value : fallback;
-  return Math.min(Math.max(1, numeric), 100);
+  return Math.min(Math.max(1, numeric), MAX_PAGE_SIZE);
 }

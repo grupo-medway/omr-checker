@@ -22,8 +22,10 @@ import {
   useExportBatchMutation,
   useExportMetadataQuery,
   useSubmitDecisionMutation,
+  DEFAULT_PAGE_SIZE,
 } from "@/hooks/useAuditoria";
 import type { AuditDetail, ProcessResponse } from "@/lib/api/types";
+import { normalizeAnswer, normalizeRaw } from "@/lib/utils/normalize";
 
 export default function AuditoriaPage() {
   const { credentials, clearCredentials, hydrated } = useAuditCredentials();
@@ -39,7 +41,7 @@ export default function AuditoriaPage() {
     {
       batchId,
       status: filterStatus,
-      pageSize: 100,
+      pageSize: DEFAULT_PAGE_SIZE,
     },
     { enabled: Boolean(batchId) },
   );
@@ -58,7 +60,7 @@ export default function AuditoriaPage() {
       const initialAnswers = buildInitialAnswers(currentDetail);
       setAnswers(initialAnswers);
       setBaselineAnswers(initialAnswers);
-      const detailNotes = (currentDetail.notes ?? "").trim();
+      const detailNotes = normalizeRaw(currentDetail.notes);
       setNotes(detailNotes);
       setBaselineNotes(detailNotes);
       return;
@@ -83,7 +85,9 @@ export default function AuditoriaPage() {
 
   const hasChanges = useMemo(() => {
     if (!currentDetail) return false;
-    if (normalizeText(notes) !== normalizeText(baselineNotes)) {
+    // IMPORTANTE: Usar notes imediatas (não debounced) para detectar mudanças
+    // Garante que o alerta apareça instantaneamente ao digitar
+    if (normalizeRaw(notes) !== normalizeRaw(baselineNotes)) {
       return true;
     }
     const questions = new Set([
@@ -106,6 +110,16 @@ export default function AuditoriaPage() {
     if (!selectedAuditId) return -1;
     return listItems.findIndex((item) => item.id === selectedAuditId);
   }, [listItems, selectedAuditId]);
+
+  useEffect(() => {
+    if (!selectedAuditId) return;
+    if (currentIndex !== -1) return;
+    if (listItems.length === 0) {
+      setSelectedAuditId(null);
+      return;
+    }
+    setSelectedAuditId(listItems[0].id);
+  }, [currentIndex, listItems, selectedAuditId]);
 
   const previousId = currentIndex > 0 ? listItems[currentIndex - 1]?.id ?? null : null;
   const nextId =
@@ -170,6 +184,9 @@ export default function AuditoriaPage() {
       toast.error("Nenhum lote selecionado");
       return;
     }
+    if (exportMutation.isPending) {
+      return;
+    }
     try {
       const blob = await exportMutation.mutateAsync();
       const url = URL.createObjectURL(blob);
@@ -192,6 +209,9 @@ export default function AuditoriaPage() {
       toast.error("Nenhum lote selecionado");
       return;
     }
+    if (cleanupMutation.isPending) {
+      return;
+    }
     const confirmed = window.confirm(
       "Tem certeza que deseja limpar o lote? Esta ação removerá dados e arquivos exportados.",
     );
@@ -202,8 +222,6 @@ export default function AuditoriaPage() {
       toast.success("Lote limpo com sucesso");
       setBatchId(null);
       setSelectedAuditId(null);
-      manifestQuery.remove();
-      listQuery.remove();
     } catch (error) {
       toast.error((error as Error).message || "Falha ao limpar o lote");
     }
@@ -253,7 +271,14 @@ export default function AuditoriaPage() {
           <BatchSummary
             response={listQuery.data}
             batchId={batchId}
-            manifestInfo={manifestQuery.data ?? undefined}
+            manifestInfo={
+              manifestQuery.data && typeof manifestQuery.data === "object" && "exported_at" in manifestQuery.data
+                ? {
+                    exported_at: manifestQuery.data.exported_at,
+                    exported_by: manifestQuery.data.exported_by,
+                  }
+                : undefined
+            }
           />
         ) : null}
 
@@ -262,7 +287,14 @@ export default function AuditoriaPage() {
           disabled={!batchId || listQuery.isLoading}
           isExporting={exportMutation.isPending}
           isCleaning={cleanupMutation.isPending}
-          manifest={manifestQuery.data ?? undefined}
+          manifest={
+            manifestQuery.data && typeof manifestQuery.data === "object" && "exported_at" in manifestQuery.data
+              ? {
+                  exported_at: manifestQuery.data.exported_at,
+                  exported_by: manifestQuery.data.exported_by,
+                }
+              : undefined
+          }
           manifestLoading={manifestQuery.isLoading}
           onExport={handleExport}
           onCleanup={handleCleanup}
@@ -340,13 +372,4 @@ function toPayloadAnswers(answers: Record<string, string>) {
     acc[question] = value;
     return acc;
   }, {});
-}
-
-function normalizeAnswer(value: string | null | undefined) {
-  const normalized = (value ?? "").trim().toUpperCase();
-  return normalized === "" ? "UNMARKED" : normalized;
-}
-
-function normalizeText(value: string) {
-  return value.trim();
 }
