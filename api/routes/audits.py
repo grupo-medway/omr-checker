@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import json
 import math
+import secrets
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
-import secrets
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 
 from api.db.config import get_settings
-from api.db.models import AuditItem, AuditStatus
+from api.db.models import AuditItem, AuditStatus, BatchStatus
 from api.db.session import get_session
 from api.models import (
     AuditDecisionRequest,
@@ -17,8 +20,18 @@ from api.models import (
     AuditListItem,
     AuditListResponse,
     AuditResponseModel,
+    BatchManifest,
+    BatchManifestItem,
+    CleanupRequest,
+    CleanupResponse,
+    ExportMetadata,
 )
-from api.services.audit_registry import reconcile_batch
+from api.services.audit_registry import (
+    cleanup_batch,
+    get_batch,
+    invalidate_batch_export,
+    reconcile_batch,
+)
 
 
 router = APIRouter(prefix="/api/audits", tags=["auditoria"])
@@ -34,10 +47,53 @@ def _require_token(
         raise HTTPException(status_code=401, detail="Token de auditoria inválido")
 
 
+def _require_user(
+    audit_user: Optional[str] = Header(default=None, alias="X-Audit-User"),
+) -> str:
+    user = (audit_user or "").strip()
+    if not user:
+        raise HTTPException(status_code=400, detail="Cabeçalho X-Audit-User é obrigatório")
+    return user
+
+
 def _public_url(path: Optional[str]) -> Optional[str]:
     if not path:
         return None
     return f"/static/{path.lstrip('/')}"
+
+
+def _load_manifest(path: Path) -> BatchManifest:
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Manifesto não encontrado")
+
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+
+    return BatchManifest(
+        batch_id=data["batch_id"],
+        template=data["template"],
+        generated_at=datetime.fromisoformat(data["generated_at"]),
+        exported_by=data.get("exported_by"),
+        has_corrections=data.get("has_corrections", False),
+        files=data.get("files", {}),
+        hashes=data.get("hashes", {}),
+        summary=data.get("summary", {}),
+        items=[
+            BatchManifestItem(
+                id=item["id"],
+                file_id=item["file_id"],
+                status=AuditStatus(item["status"]),
+                issues=item.get("issues", []),
+                updated_at=datetime.fromisoformat(item["updated_at"]),
+                exported_at=(
+                    datetime.fromisoformat(item["exported_at"])
+                    if item.get("exported_at")
+                    else None
+                ),
+            )
+            for item in data.get("items", [])
+        ],
+    )
 
 
 def _to_list_item(item: AuditItem) -> AuditListItem:
@@ -134,6 +190,75 @@ def list_audits(
     )
 
 
+@router.get("/export")
+def export_batch(
+    batch_id: str = Query(..., description="Identificador do lote"),
+    format: str = Query(default="file", pattern="^(file|json)$"),
+    _: None = Depends(_require_token),
+    user: str = Depends(_require_user),
+    session: Session = Depends(get_session),
+):
+    settings = get_settings()
+    result = reconcile_batch(session, settings, batch_id=batch_id, exported_by=user)
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="Lote não encontrado")
+
+    batch = result.batch
+
+    if batch.exported_at is None:
+        raise HTTPException(status_code=500, detail="Falha ao registrar exportação do lote")
+
+    if format.lower() == "json":
+        manifest = _load_manifest(result.manifest_path)
+        metadata = ExportMetadata(
+            batch_id=batch.batch_id,
+            status=batch.status,
+            exported_at=batch.exported_at,
+            exported_by=batch.exported_by,
+            corrected_results_path=batch.corrected_results_path or result.corrected_csv.name,
+            manifest_path=batch.manifest_path or result.manifest_path.name,
+            manifest=manifest,
+        )
+        return metadata
+
+    filename = result.corrected_csv.name
+    return FileResponse(
+        path=result.corrected_csv,
+        media_type="text/csv",
+        filename=filename,
+    )
+
+
+@router.post("/cleanup", response_model=CleanupResponse)
+def cleanup_batch_endpoint(
+    payload: CleanupRequest,
+    _: None = Depends(_require_token),
+    _user: str = Depends(_require_user),
+    session: Session = Depends(get_session),
+):
+    if not payload.confirm:
+        raise HTTPException(status_code=400, detail="Confirme a limpeza definindo 'confirm' para true")
+
+    settings = get_settings()
+
+    try:
+        result = cleanup_batch(session, settings, batch_id=payload.batch_id)
+    except ValueError as exc:  # noqa: BLE001
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="Lote não encontrado")
+
+    removed = [path.as_posix() for path in result.removed_paths]
+
+    return CleanupResponse(
+        batch_id=result.batch_id,
+        status=BatchStatus.CLEANED,
+        removed_paths=removed,
+    )
+
+
 @router.get("/{audit_id}", response_model=AuditDetail)
 def get_audit(
     audit_id: int,
@@ -177,17 +302,19 @@ def submit_decision(
 
     item.notes = payload.notes
     item.status = AuditStatus.RESOLVED
+    item.exported_at = None
 
     session.add(item)
+    batch = get_batch(session, item.batch_id)
+    if batch:
+        settings = get_settings()
+        invalidate_batch_export(batch, settings)
+        session.add(batch)
+
     session.commit()
     session.refresh(item)
 
     for response in item.responses:
         session.refresh(response)
-
-    settings = get_settings()
-    reconcile_batch(session, settings, batch_id=item.batch_id)
-
-    session.refresh(item)
 
     return _to_detail(item)
