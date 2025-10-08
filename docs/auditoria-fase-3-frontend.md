@@ -35,6 +35,7 @@
 ## Riscos e Mitigações
 - **Performance com muitas questões** → paginar ou agrupar grid acima de 60 itens e memoizar componentes.
 - **Imagens pesadas** → carregar via streaming/URL estática com lazy loading e fallback.
+- **URLs de imagens relativas** → garantir que `NEXT_PUBLIC_API_URL` aponte para o backend para que o viewer resolva `/static/...` corretamente.
 - **Erros UX** → prototipar fluxo com usuários internos antes de consolidar interações.
 
 ## Critérios de Aceite

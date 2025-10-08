@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import { Image as ImageIcon, Maximize2, Minimize2, RefreshCw } from "lucide-react";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 
 import { Button } from "@/components/ui/button";
+import { resolveAuditImageUrl } from "@/lib/utils/urls";
 
 type AuditImageViewerProps = {
   imageUrl?: string | null;
@@ -18,8 +18,11 @@ export function AuditImageViewer({ imageUrl, markedImageUrl, issues }: AuditImag
 
   const hasMarked = Boolean(markedImageUrl);
   const displayUrl = useMemo(() => {
-    if (variant === "marked" && markedImageUrl) return markedImageUrl;
-    return imageUrl ?? markedImageUrl ?? null;
+    const rawUrl =
+      variant === "marked" && markedImageUrl
+        ? markedImageUrl
+        : imageUrl ?? markedImageUrl ?? null;
+    return resolveAuditImageUrl(rawUrl);
   }, [imageUrl, markedImageUrl, variant]);
 
   if (!displayUrl) {
@@ -79,14 +82,13 @@ export function AuditImageViewer({ imageUrl, markedImageUrl, issues }: AuditImag
               </Button>
             </div>
             <TransformComponent>
-              <div className="relative h-full w-full">
-                <Image
+              <div className="flex h-full w-full items-center justify-center">
+                <img
                   src={displayUrl}
                   alt="Cartão OMR"
-                  fill
-                  unoptimized
-                  sizes="(max-width: 1024px) 100vw, 60vw"
-                  className="object-contain"
+                  className="h-full w-full select-none object-contain"
+                  draggable={false}
+                  crossOrigin="anonymous"
                 />
               </div>
             </TransformComponent>
