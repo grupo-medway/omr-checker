@@ -38,6 +38,8 @@ PROBLEM_VALUES = {
     "EMPTY",
 }
 
+VALID_ALTERNATIVES = {"A", "B", "C", "D", "E"}
+
 logger = logging.getLogger(__name__)
 
 
@@ -104,7 +106,7 @@ def _detect_issues(answers: Dict[str, str], question_keys: Iterable[str]) -> Lis
         raw_value = answers.get(question)
         value = (raw_value or "").strip()
         normalized = value.upper()
-        if normalized in PROBLEM_VALUES:
+        if _is_problematic_value(normalized):
             display = value or "blank"
             issues.append(f"{question}: {display}")
     return issues
@@ -484,3 +486,27 @@ def _hash_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(8192), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
+
+
+def _is_problematic_value(value: str) -> bool:
+    if value in PROBLEM_VALUES:
+        return True
+
+    normalized = value.strip().upper()
+    if not normalized:
+        return True
+
+    if normalized in PROBLEM_VALUES:
+        return True
+
+    letters = [char for char in normalized if char.isalpha()]
+    if not letters:
+        return True
+
+    unique_letters = {char for char in letters}
+
+    if len(unique_letters) > 1:
+        return True
+
+    only_letter = unique_letters.pop()
+    return only_letter not in VALID_ALTERNATIVES or normalized != only_letter

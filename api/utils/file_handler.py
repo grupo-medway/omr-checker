@@ -98,6 +98,16 @@ class FileHandler:
             "evaluation.json",
         ]
 
+        reference_candidates = (
+            ["template_reference.jpg", "template_reference.jpeg", "template_reference.png"]
+            if files_to_copy is None
+            else []
+        )
+
+        for candidate in reference_candidates:
+            if candidate not in filenames and (template_dir / candidate).exists():
+                filenames.append(candidate)
+
         for file_name in filenames:
             src_file = template_dir / file_name
             if src_file.exists():

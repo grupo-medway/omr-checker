@@ -72,15 +72,15 @@ def test_register_audit_batch_creates_pending_items(api_client, tmp_path):
                 "score": "0",
                 "matricula": "123",
                 "lingua": "PT",
-                "q1": "",
-                "q2": "A",
+                "q1": "AB",
+                "q2": "",
             }
         ],
     )
 
     record = ProcessedRecord(
         file_id="file1.png",
-        answers={"matricula": "123", "lingua": "PT", "q1": "", "q2": "A"},
+        answers={"matricula": "123", "lingua": "PT", "q1": "AB", "q2": ""},
         question_keys=["q1", "q2"],
         marked_image_path=marked_image,
     )
@@ -104,7 +104,10 @@ def test_register_audit_batch_creates_pending_items(api_client, tmp_path):
         item = session.get(AuditItem, item_id)
         assert item is not None
         assert item.issues
-        assert item.raw_answers["q2"] == "A"
+        assert item.raw_answers["q1"] == "AB"
+        assert item.raw_answers["q2"] == ""
+        assert any(issue.startswith("q1:") for issue in item.issues)
+        assert any("q2" in issue for issue in item.issues)
         assert item.image_path is not None
 
         exported = reconcile_batch(session, settings, batch_id=batch_id, exported_by="tester")

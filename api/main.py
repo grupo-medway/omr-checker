@@ -4,6 +4,7 @@ from typing import Optional
 import tempfile
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session
@@ -27,6 +28,14 @@ app = FastAPI(
 
 
 ensure_storage_dirs(settings)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 app.mount("/static", StaticFiles(directory=settings.static_root), name="static")
 app.include_router(audits_router)
 

@@ -1,6 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     database_filename: str = Field(default="auditoria.db")
     max_zip_size_mb: int = Field(default=100, ge=1)
     audit_token: Optional[str] = None
+    cors_origins: List[str] = Field(default_factory=lambda: ["http://localhost:3000"])
 
     model_config = SettingsConfigDict(
         env_prefix="AUDIT_",
