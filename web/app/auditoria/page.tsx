@@ -556,7 +556,7 @@ export default function AuditoriaPage() {
         </div>
 
         {/* Desktop Layout: 3 Columns */}
-        <main className="hidden lg:grid flex-1 gap-6 pb-10 h-[calc(100vh-180px)] lg:grid-cols-[280px_1fr_420px] overflow-hidden">
+        <main className="hidden lg:grid flex-1 gap-6 pb-10 h-[calc(100vh-180px)] lg:grid-cols-[280px_1fr_320px] overflow-hidden">
           {/* Column 1: List */}
           <aside className="flex flex-col overflow-hidden border rounded-lg">
             <AuditList

@@ -57,27 +57,39 @@ export function AuditList({
     <div className={cn("flex h-full flex-col gap-3", compact && "max-h-60")}>
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
+          <label htmlFor="audit-search" className="sr-only">
+            Buscar cartões por identificador
+          </label>
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
+            id="audit-search"
             type="search"
             placeholder="Buscar por identificador"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
+            aria-label="Buscar cartões por identificador"
             className="w-full rounded-md border border-input bg-background py-2 pl-8 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <select
-          value={filterStatus ?? ""}
-          onChange={(event) =>
-            onFilterStatus(event.target.value ? event.target.value : null)
-          }
-          className="h-10 w-[150px] rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">Todos</option>
-          <option value="pending">Pendentes</option>
-          <option value="resolved">Resolvidos</option>
-          <option value="reopened">Reabertos</option>
-        </select>
+        <div className="shrink-0">
+          <label htmlFor="audit-filter" className="sr-only">
+            Filtrar por status
+          </label>
+          <select
+            id="audit-filter"
+            value={filterStatus ?? ""}
+            onChange={(event) =>
+              onFilterStatus(event.target.value ? event.target.value : null)
+            }
+            aria-label="Filtrar cartões por status"
+            className="h-10 w-[150px] rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Todos</option>
+            <option value="pending">Pendentes</option>
+            <option value="resolved">Resolvidos</option>
+            <option value="reopened">Reabertos</option>
+          </select>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-card">

@@ -103,13 +103,14 @@ export function QuestionGrid({
   const virtualizer = useVirtualizer({
     count: sortedResponses.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 140, // Estimated height of each card (px)
+    estimateSize: () => 110, // Estimated height of each card (px) - reduced from 140
     overscan: 5, // Render 5 extra items outside viewport
   });
 
-  // Auto-scroll AND auto-focus first issue on load
+  // Auto-scroll to first issue on load
+  const initialScrollDone = useRef(false);
   useEffect(() => {
-    if (sortedResponses.length > 0) {
+    if (sortedResponses.length > 0 && !initialScrollDone.current) {
       const firstIssueIndex = sortedResponses.findIndex((r) =>
         issues.has(r.question)
       );
@@ -118,32 +119,25 @@ export function QuestionGrid({
         const firstIssue = sortedResponses[firstIssueIndex];
         setFocusedQuestion(firstIssue.question);
 
-        // Wait for next frame to ensure DOM is ready
+        // Scroll to first issue using virtualizer directly
         requestAnimationFrame(() => {
           virtualizer.scrollToIndex(firstIssueIndex, {
             align: "center",
             behavior: "smooth",
           });
-
-          // Focus the element after scroll
-          setTimeout(() => {
-            const element = document.querySelector(`[data-question="${firstIssue.question}"]`) as HTMLElement;
-            element?.focus();
-          }, 100);
         });
+
+        initialScrollDone.current = true;
       } else {
         // No issues, focus first question
         const firstQuestion = sortedResponses[0]?.question;
         if (firstQuestion) {
           setFocusedQuestion(firstQuestion);
-          setTimeout(() => {
-            const element = document.querySelector(`[data-question="${firstQuestion}"]`) as HTMLElement;
-            element?.focus();
-          }, 100);
         }
+        initialScrollDone.current = true;
       }
     }
-  }, [sortedResponses, issues, showIssuesOnly, virtualizer]);
+  }, [sortedResponses, issues, virtualizer]);
 
   // Keyboard navigation (answers + arrow navigation between issues)
   useEffect(() => {
@@ -174,7 +168,7 @@ export function QuestionGrid({
           const nextQuestion = issueQuestions[nextIndex];
           setFocusedQuestion(nextQuestion);
 
-          // Scroll to question
+          // Scroll to question using virtualizer directly
           const responseIndex = sortedResponses.findIndex((r) => r.question === nextQuestion);
           if (responseIndex !== -1) {
             virtualizer.scrollToIndex(responseIndex, {
@@ -182,12 +176,6 @@ export function QuestionGrid({
               behavior: "smooth",
             });
           }
-
-          // Focus element
-          setTimeout(() => {
-            const element = document.querySelector(`[data-question="${nextQuestion}"]`) as HTMLElement;
-            element?.focus();
-          }, 100);
 
           return;
         }
@@ -268,7 +256,7 @@ export function QuestionGrid({
               onFocus={() => setFocusedQuestion(question)}
               className={cn(
                 "absolute top-0 left-0 w-full",
-                "flex flex-col gap-3 rounded-md border p-3 mb-3 transition-all cursor-pointer",
+                "flex flex-col gap-2 rounded-md border p-2.5 mb-2.5 transition-all cursor-pointer",
                 "hover:shadow-md focus-within:ring-2 focus-within:ring-primary",
                 // Focus indicator
                 isFocused && "ring-2 ring-primary shadow-lg",
@@ -308,7 +296,7 @@ export function QuestionGrid({
               </div>
 
               {/* Answer buttons */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1">
                 {ANSWER_OPTIONS.map((option) => {
                   const selected = normalizeAnswer(option) === normalizedCurrent;
                   return (
@@ -318,9 +306,9 @@ export function QuestionGrid({
                       disabled={isSaving}
                       onClick={() => onChange(question, option)}
                       aria-label={`Marcar resposta ${renderOptionLabel(option)} para ${question}`}
-                      className={`rounded-md border px-3 py-2 text-sm font-medium transition min-w-[44px] ${
+                      className={`rounded border px-2 py-0.5 text-xs font-medium transition min-w-[32px] ${
                         selected
-                          ? "border-primary bg-primary/10 text-primary ring-2 ring-primary ring-offset-2"
+                          ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
                           : "border-border/60 bg-background text-muted-foreground hover:border-primary/40"
                       }`}
                     >
@@ -330,7 +318,7 @@ export function QuestionGrid({
                 })}
               </div>
 
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground leading-tight">
                 Lido: {read_value || "∅"} • Atual: {normalizedCurrent === "UNMARKED" ? "∅" : normalizedCurrent}
               </p>
             </article>
@@ -348,5 +336,5 @@ function parseQuestionIndex(question: string) {
 }
 
 function renderOptionLabel(option: string) {
-  return option === "UNMARKED" ? "Vazio" : option;
+  return option === "UNMARKED" ? "∅" : option;
 }
