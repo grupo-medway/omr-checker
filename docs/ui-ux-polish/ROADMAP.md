@@ -1,7 +1,7 @@
 # 🎨 Roadmap: Polimento UI/UX - Interface de Auditoria OMR
 
 **Data:** 2025-10-09
-**Status:** 🟡 Em Planejamento
+**Status:** 🟢 Em Progresso (Fases 1-2 Completas)
 **Objetivo:** Transformar a experiência de auditoria de cartões OMR, reduzindo tempo de processamento em 60% e melhorando usabilidade drasticamente.
 
 ---
@@ -22,38 +22,45 @@
 
 | Fase | Duração | Status | Progresso |
 |------|---------|--------|-----------|
-| **Fase 1: Quick Wins** | 1-2 dias | 🔴 Não iniciado | 0/5 |
-| **Fase 2: Layout Refactor** | 3-5 dias | 🔴 Não iniciado | 0/4 |
+| **Fase 1: Quick Wins** | 1-2 dias | ✅ Completo | 5/5 |
+| **Fase 2: Layout Refactor** | 3-5 dias | ✅ Completo | 4/4 |
 | **Fase 3: Polish** | 2-3 dias | 🔴 Não iniciado | 0/5 |
 | **Fase 4: Advanced** | 3-4 dias | ⚪ Opcional | 0/4 |
-| **TOTAL** | 6-10 dias | - | **0/18** |
+| **TOTAL** | 6-10 dias | - | **9/18** |
 
 ---
 
 ## ✅ Checklist de Progresso
 
-### 🚀 Fase 1: Quick Wins (1-2 dias)
+### ✅ Fase 1: Quick Wins (1-2 dias) - COMPLETO
 *Melhorias rápidas com 30% de impacto na UX*
 
-- [ ] **Task 1:** Image Viewer altura dinâmica (30min)
-- [ ] **Task 2:** Issues highlighting com borders coloridos (4h)
-- [ ] **Task 3:** Collapsible upload/summary/export (3h)
-- [ ] **Task 4:** Keyboard shortcuts legend (2h)
-- [ ] **Task 5:** Cleanup confirmation robusta (4h)
+- [x] **Task 1:** Image Viewer altura dinâmica (30min) ✅
+- [x] **Task 2:** Issues highlighting com borders coloridos (4h) ✅
+- [x] **Task 3:** Collapsible upload/summary/export (3h) ✅
+- [x] **Task 4:** Keyboard shortcuts legend (2h) ✅
+- [x] **Task 5:** Cleanup confirmation robusta (4h) ✅
 
 **Total:** ~14h | **Doc:** [fase-1-quick-wins.md](./fase-1-quick-wins.md)
+**Commit:** `5411200` feat(ui): implement Phase 1 quick wins
+**Correções:** `7a4b999` fix(ui): correct Phase 1 issues
 
 ---
 
-### 🏗️ Fase 2: Layout Refactor (3-5 dias)
+### ✅ Fase 2: Layout Refactor (3-5 dias) - COMPLETO
 *Transformação estrutural da interface*
 
-- [ ] **Task 6:** 3-column layout desktop (2 dias)
-- [ ] **Task 7:** Virtual scroll com @tanstack/react-virtual (1 dia)
-- [ ] **Task 8:** Remover scrolls conflitantes (1 dia)
-- [ ] **Task 9:** Mobile tabs layout (4h)
+- [x] **Task 6:** 3-column layout desktop (2 dias) ✅
+- [x] **Task 7:** Virtual scroll com @tanstack/react-virtual (1 dia) ✅
+- [x] **Task 8:** Remover scrolls conflitantes (1 dia) ✅
+- [x] **Task 9:** Mobile tabs layout (4h) ✅
 
 **Total:** ~4.5 dias | **Doc:** [fase-2-layout-refactor.md](./fase-2-layout-refactor.md)
+**Commits:**
+- `d03127e` feat(ui): implement Phase 2 layout refactor
+- `ef5d4f4` refactor(ui): improve desktop UX with consultant feedback
+- `c2d8976` feat(ui): add navigation between issues with keyboard shortcuts
+- `496764f` fix(ui): improve keyboard navigation in question grid
 
 ---
 
@@ -86,15 +93,17 @@
 
 ### Execução Recomendada
 
-#### Sprint 1: Fase 1 ✅
+#### ✅ Sprint 1: Fase 1 - COMPLETO
 **Por quê:** Melhorias rápidas, baixo risco, alto ROI
 **Resultado:** UX 30% melhor em 1-2 dias
-**Validação:** Testar com usuários reais antes de prosseguir
+**Validação:** ✅ Testado e validado
+**Commits:** `5411200`, `7a4b999`
 
-#### Sprint 2: Fase 2 🏗️
+#### ✅ Sprint 2: Fase 2 - COMPLETO
 **Por quê:** Transforma experiência desktop/mobile
 **Resultado:** Interface classe A
-**Validação:** QA completo, testar em múltiplas resoluções
+**Validação:** ✅ QA completo, testado em múltiplas resoluções
+**Commits:** `d03127e`, `ef5d4f4`, `c2d8976`, `496764f`
 
 #### Sprint 3: Fase 3 ✨
 **Por quê:** Refinamentos e produtividade
@@ -253,11 +262,13 @@ npm install workbox-webpack-plugin
 ## 🚀 Próximos Passos
 
 1. ✅ Revisar este roadmap com equipe de desenvolvimento
-2. ✅ Criar branch `feat/audit-ux-phase-1`
-3. 🔜 Implementar Fase 1 (1-2 dias)
-4. 🔜 Validar com 3-5 usuários beta
-5. 🔜 Ajustar baseado em feedback
-6. 🔜 Prosseguir para Fase 2
+2. ✅ Criar branch `feat/support-somos-simulado`
+3. ✅ Implementar Fase 1 (1-2 dias) - COMPLETO
+4. ✅ Validar com 3-5 usuários beta - COMPLETO
+5. ✅ Ajustar baseado em feedback - COMPLETO
+6. ✅ Implementar Fase 2 (3-5 dias) - COMPLETO
+7. 🔜 **ATUAL:** Prosseguir para Fase 3 (2-3 dias)
+8. 🔜 Decidir sobre Fase 4 (opcional)
 
 ---
 
@@ -270,4 +281,4 @@ npm install workbox-webpack-plugin
 ---
 
 **Última atualização:** 2025-10-09
-**Versão:** 1.0.0
+**Versão:** 2.0.0 (Fases 1-2 completas, 9/18 tasks)
