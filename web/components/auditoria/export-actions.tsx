@@ -29,9 +29,9 @@ export function ExportActions({
   onCleanup,
 }: ExportActionsProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border/40 bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-col text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Exportação e limpeza</span>
+    <div className="flex flex-col gap-4 rounded-lg border border-border/40 bg-card p-4 shadow-sm md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-1 flex-col text-xs text-muted-foreground">
+        <span className="text-sm font-semibold text-foreground">Exportação e limpeza</span>
         {manifest?.exported_at ? (
           <span>
             Última exportação: {new Date(manifest.exported_at).toLocaleString()} por{" "}
@@ -45,12 +45,12 @@ export function ExportActions({
           <span>Nenhuma exportação registrada até o momento.</span>
         )}
       </div>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex w-full flex-col gap-2 md:max-w-[260px]">
         <Button
           type="button"
           onClick={onExport}
           disabled={disabled || !batchId || isExporting || manifestLoading}
-          className="min-w-[160px] gap-2"
+          className="h-12 justify-center gap-2 rounded-lg bg-primary text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
         >
           {isExporting ? (
             <>
@@ -62,12 +62,15 @@ export function ExportActions({
             </>
           )}
         </Button>
+        <p className="text-[11px] text-muted-foreground">
+          Gera CSV corrigido do lote atual.
+        </p>
         <Button
           type="button"
           variant="destructive"
           onClick={onCleanup}
           disabled={disabled || !batchId || isCleaning}
-          className="min-w-[160px] gap-2"
+          className="h-12 justify-center gap-2 rounded-lg text-base font-semibold"
         >
           {isCleaning ? (
             <>
@@ -79,6 +82,9 @@ export function ExportActions({
             </>
           )}
         </Button>
+        <p className="text-[11px] text-muted-foreground">
+          Remove resultados e arquivos exportados do lote.
+        </p>
       </div>
     </div>
   );

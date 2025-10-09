@@ -130,7 +130,7 @@ export function QuestionGrid({
           </div>
         </div>
       </header>
-      <div className="grid max-h-[420px] grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-border/60 bg-card p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid flex-1 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-border/60 bg-card p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {pagedResponses.map((response) => {
           const question = response.question;
           const readValue = response.read_value ?? "";

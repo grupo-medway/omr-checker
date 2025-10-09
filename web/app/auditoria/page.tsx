@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ export default function AuditoriaPage() {
   const [baselineAnswers, setBaselineAnswers] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState("");
   const [baselineNotes, setBaselineNotes] = useState("");
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
 
   const listQuery = useAuditListQuery(
     {
@@ -45,6 +47,7 @@ export default function AuditoriaPage() {
     },
     { enabled: Boolean(batchId) },
   );
+  const refetchList = listQuery.refetch;
 
   const detailQuery = useAuditDetailQuery(selectedAuditId, { enabled: Boolean(selectedAuditId) });
   const submitDecision = useSubmitDecisionMutation(selectedAuditId);
@@ -127,6 +130,11 @@ export default function AuditoriaPage() {
       ? listItems[currentIndex + 1]?.id ?? null
       : null;
 
+  const totalItems = listQuery.data?.total ?? listItems.length;
+  const fallbackPending = listItems.filter((item) => String(item.status).toUpperCase() === "PENDING").length;
+  const pendingCount = listQuery.data?.pending ?? fallbackPending;
+  const cardPosition = currentIndex >= 0 ? currentIndex + 1 : 0;
+
   const handleProcessed = (response: ProcessResponse) => {
     const newBatchId = response.summary.batch_id;
     setBatchId(newBatchId);
@@ -135,22 +143,30 @@ export default function AuditoriaPage() {
     setSelectedAuditId(firstItem?.id ?? null);
   };
 
+  const runOrQueueNavigation = useCallback(
+    (action: () => void) => {
+      if (hasChanges) {
+        setPendingNavigation(() => action);
+        setShowUnsavedDialog(true);
+      } else {
+        setPendingNavigation(null);
+        action();
+        refetchList();
+      }
+    },
+    [hasChanges, refetchList],
+  );
+
   const handleSelectItem = (id: number) => {
     if (id === selectedAuditId) return;
-    if (hasChanges) {
-      const confirmed = window.confirm(
-        "Você possui alterações não salvas. Deseja descartá-las e trocar de cartão?",
-      );
-      if (!confirmed) return;
-    }
-    setSelectedAuditId(id);
+    runOrQueueNavigation(() => setSelectedAuditId(id));
   };
 
   const handleAnswerChange = (question: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [question]: value }));
   };
 
-  const handleSaveDecision = () => {
+  const handleSaveDecision = (onSaved?: (detail: AuditDetail) => void) => {
     if (!currentDetail) {
       toast.error("Nenhum item selecionado");
       return;
@@ -170,8 +186,9 @@ export default function AuditoriaPage() {
         const updatedNotes = (data.notes ?? "").trim();
         setNotes(updatedNotes);
         setBaselineNotes(updatedNotes);
-        listQuery.refetch();
+        refetchList();
         manifestQuery.refetch();
+        onSaved?.(data);
       },
       onError: (error) => {
         toast.error(error.message || "Não foi possível salvar a decisão");
@@ -229,9 +246,75 @@ export default function AuditoriaPage() {
 
   const showWorkspace = Boolean(currentDetail);
 
+  const handleCancelNavigation = () => {
+    setPendingNavigation(null);
+    setShowUnsavedDialog(false);
+  };
+
+  const handleDiscardNavigation = () => {
+    if (pendingNavigation) {
+      pendingNavigation();
+      refetchList();
+    }
+    handleCancelNavigation();
+  };
+
+  const handleSaveAndContinue = () => {
+    handleSaveDecision(() => {
+      if (pendingNavigation) {
+        pendingNavigation();
+      }
+      refetchList();
+      handleCancelNavigation();
+    });
+  };
+
+  const handlePrevious = useCallback(() => {
+    if (!previousId) return;
+    runOrQueueNavigation(() => setSelectedAuditId(previousId));
+  }, [previousId, runOrQueueNavigation]);
+
+  const handleNext = useCallback(() => {
+    if (!nextId) return;
+    runOrQueueNavigation(() => setSelectedAuditId(nextId));
+  }, [nextId, runOrQueueNavigation]);
+
+  useEffect(() => {
+    if (!showWorkspace) return;
+    const handler = (event: KeyboardEvent) => {
+      if (showUnsavedDialog || submitDecision.isPending) {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+        return;
+      }
+      if (event.key === "ArrowLeft" && previousId) {
+        event.preventDefault();
+        handlePrevious();
+      }
+      if (event.key === "ArrowRight" && nextId) {
+        event.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [showWorkspace, showUnsavedDialog, submitDecision.isPending, previousId, nextId, handlePrevious, handleNext]);
+
   return (
     <div className="relative min-h-screen bg-background">
       <CredentialsDialog />
+
+      {showUnsavedDialog && currentDetail ? (
+        <UnsavedChangesDialog
+          fileId={currentDetail.file_id}
+          isSaving={submitDecision.isPending}
+          onCancel={handleCancelNavigation}
+          onDiscard={handleDiscardNavigation}
+          onSaveAndContinue={handleSaveAndContinue}
+        />
+      ) : null}
 
       <div className="mx-auto flex min-h-screen max-w-[1400px] flex-col gap-6 px-4 py-6 sm:px-6">
         <header className="flex flex-col justify-between gap-4 border-b border-border/40 pb-4 sm:flex-row sm:items-center">
@@ -271,6 +354,7 @@ export default function AuditoriaPage() {
           <BatchSummary
             response={listQuery.data}
             batchId={batchId}
+            isRefreshing={listQuery.isFetching}
             manifestInfo={
               manifestQuery.data && typeof manifestQuery.data === "object" && "exported_at" in manifestQuery.data
                 ? {
@@ -300,7 +384,7 @@ export default function AuditoriaPage() {
           onCleanup={handleCleanup}
         />
 
-        <main className="grid flex-1 gap-6 pb-10 lg:grid-cols-[320px_1fr]">
+        <main className="grid flex-1 gap-6 pb-10 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="flex h-full flex-col gap-3">
             <AuditList
               items={listQuery.data?.items}
@@ -312,32 +396,65 @@ export default function AuditoriaPage() {
             />
           </aside>
 
-          <section className="flex h-full flex-col gap-4">
+          <section className="flex h-full flex-col">
             {showWorkspace && currentDetail ? (
-              <>
-                <AuditImageViewer
-                  imageUrl={currentDetail.image_url}
-                  markedImageUrl={currentDetail.marked_image_url}
-                  issues={currentDetail.issues}
-                />
-                <QuestionGrid
-                  responses={currentDetail.responses}
-                  currentAnswers={answers}
-                  issues={issuesSet}
-                  onChange={handleAnswerChange}
-                  isSaving={submitDecision.isPending}
-                />
-                <DecisionToolbar
-                  onSave={handleSaveDecision}
-                  onPrev={previousId ? () => handleSelectItem(previousId) : undefined}
-                  onNext={nextId ? () => handleSelectItem(nextId) : undefined}
-                  disabled={!currentDetail}
-                  isSaving={submitDecision.isPending}
-                  hasChanges={hasChanges}
-                  notes={notes}
-                  onNotesChange={setNotes}
-                />
-              </>
+              <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_480px]">
+                <div className="flex flex-col gap-4">
+                  <AuditImageViewer
+                    imageUrl={currentDetail.image_url}
+                    markedImageUrl={currentDetail.marked_image_url}
+                  />
+                </div>
+
+                <div className="flex h-full flex-col gap-4">
+                  <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-semibold text-foreground">
+                        Nome do arquivo: {currentDetail.file_id}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        Cartão {cardPosition} de {totalItems} • Pendentes restantes: {pendingCount}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Status atual: {formatStatus(currentDetail.status)}
+                      </span>
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-xs font-medium text-foreground">Issues detectadas</p>
+                      {currentDetail.issues.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Nenhum problema registrado.</p>
+                      ) : (
+                        <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                          {currentDetail.issues.map((issue) => (
+                            <li key={issue}>{issue}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-hidden">
+                    <QuestionGrid
+                      responses={currentDetail.responses}
+                      currentAnswers={answers}
+                      issues={issuesSet}
+                      onChange={handleAnswerChange}
+                      isSaving={submitDecision.isPending}
+                    />
+                  </div>
+
+                  <DecisionToolbar
+                    onSave={() => handleSaveDecision()}
+                    onPrev={previousId ? handlePrevious : undefined}
+                    onNext={nextId ? handleNext : undefined}
+                    disabled={!currentDetail}
+                    isSaving={submitDecision.isPending}
+                    hasChanges={hasChanges}
+                    notes={notes}
+                    onNotesChange={setNotes}
+                  />
+                </div>
+              </div>
             ) : batchId ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/40 bg-muted/10 p-6 text-center text-sm text-muted-foreground">
                 <p>Selecione um cartão pendente na lista para iniciar a correção.</p>
@@ -372,4 +489,64 @@ function toPayloadAnswers(answers: Record<string, string>) {
     acc[question] = value;
     return acc;
   }, {});
+}
+
+function formatStatus(status?: string | null) {
+  if (!status) return "—";
+  const normalized = status.toLowerCase();
+  if (normalized === "pending") return "Pendente";
+  if (normalized === "resolved") return "Resolvido";
+  if (normalized === "reopened") return "Reaberto";
+  return status;
+}
+
+type UnsavedChangesDialogProps = {
+  fileId: string;
+  isSaving: boolean;
+  onCancel: () => void;
+  onDiscard: () => void;
+  onSaveAndContinue: () => void;
+};
+
+function UnsavedChangesDialog({ fileId, isSaving, onCancel, onDiscard, onSaveAndContinue }: UnsavedChangesDialogProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-xl border border-border/40 bg-card p-6 shadow-xl">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-full bg-amber-500/10 p-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+            </div>
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <h2 className="text-base font-semibold text-foreground">Salvar alterações antes de continuar?</h2>
+              <p>
+                Você fez alterações no cartão <span className="font-medium text-foreground">{fileId}</span>. Escolha uma opção para seguir.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+            <p>
+              <strong className="text-foreground">Salvar e continuar</strong>: registra as mudanças e avança para o próximo cartão.
+            </p>
+            <p>
+              <strong className="text-foreground">Descartar alterações</strong>: ignora as mudanças atuais.
+            </p>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="ghost" onClick={onCancel} disabled={isSaving}>
+              Cancelar
+            </Button>
+            <Button type="button" variant="destructive" onClick={onDiscard} disabled={isSaving}>
+              Descartar alterações
+            </Button>
+            <Button type="button" onClick={onSaveAndContinue} disabled={isSaving}>
+              {isSaving ? "Salvando..." : "Salvar e continuar"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -79,8 +79,8 @@ export function UploadForm({ onProcessed, disabled }: UploadFormProps) {
       onSubmit={handleSubmit}
       className="rounded-lg border border-border/40 bg-card p-4 shadow-sm"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-        <div className="flex w-full flex-col gap-2 sm:max-w-xs">
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:gap-6">
+        <div className="flex w-full flex-col gap-2 sm:max-w-md">
           <label
             className="text-sm font-semibold text-foreground"
             htmlFor="template"
@@ -137,8 +137,7 @@ export function UploadForm({ onProcessed, disabled }: UploadFormProps) {
             </span>
           )}
         </div>
-
-        <div className="flex flex-col items-stretch gap-2 sm:items-center">
+        <div className="flex flex-col items-stretch gap-2 md:min-w-[220px]">
           <Button
             type="submit"
             disabled={
@@ -147,7 +146,7 @@ export function UploadForm({ onProcessed, disabled }: UploadFormProps) {
               processMutation.isPending ||
               disabled
             }
-            className="min-w-[200px] justify-center gap-2 rounded-lg border border-primary bg-primary px-5 py-3 text-base font-semibold text-primary-foreground shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
+            className="h-14 justify-center gap-2 rounded-xl border border-primary bg-primary text-base font-semibold text-primary-foreground shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
             aria-live="polite"
           >
             {processMutation.isPending ? (
@@ -164,7 +163,7 @@ export function UploadForm({ onProcessed, disabled }: UploadFormProps) {
           </Button>
           <p className="flex items-start gap-2 text-xs text-muted-foreground">
             <AlertCircle className="mt-0.5 h-3.5 w-3.5" aria-hidden />
-            Selecione um template e um arquivo ZIP válido para habilitar o botão.
+            Selecione template e ZIP válidos para liberar o processamento.
           </p>
         </div>
       </div>

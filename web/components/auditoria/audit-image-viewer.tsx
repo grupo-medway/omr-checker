@@ -10,10 +10,9 @@ import { resolveAuditImageUrl } from "@/lib/utils/urls";
 type AuditImageViewerProps = {
   imageUrl?: string | null;
   markedImageUrl?: string | null;
-  issues: string[];
 };
 
-export function AuditImageViewer({ imageUrl, markedImageUrl, issues }: AuditImageViewerProps) {
+export function AuditImageViewer({ imageUrl, markedImageUrl }: AuditImageViewerProps) {
   const [variant, setVariant] = useState<"original" | "marked">("marked");
 
   const hasMarked = Boolean(markedImageUrl);
@@ -63,13 +62,9 @@ export function AuditImageViewer({ imageUrl, markedImageUrl, issues }: AuditImag
         </div>
       </div>
 
-      <TransformWrapper
-        wheel={{ step: 0.1 }}
-        minScale={0.5}
-        initialScale={hasMarked ? 0.9 : 1}
-      >
+      <TransformWrapper wheel={{ step: 0.1 }} minScale={0.5} initialScale={hasMarked ? 0.9 : 1}>
         {({ zoomIn, zoomOut, resetTransform }) => (
-          <div className="relative flex h-[360px] flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/10">
+          <div className="relative flex h-[420px] flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/10">
             <div className="absolute right-3 top-3 z-10 flex gap-2">
               <Button type="button" variant="secondary" size="icon" onClick={() => zoomOut()}>
                 <Minimize2 className="h-4 w-4" />
@@ -95,19 +90,6 @@ export function AuditImageViewer({ imageUrl, markedImageUrl, issues }: AuditImag
           </div>
         )}
       </TransformWrapper>
-
-      <div className="rounded-md border border-border/60 bg-muted/10 p-3 text-xs text-muted-foreground">
-        <p className="font-medium text-foreground">Issues detectadas:</p>
-        {issues.length === 0 ? (
-          <p className="mt-1">Nenhum problema registrado.</p>
-        ) : (
-          <ul className="mt-1 list-disc space-y-1 pl-5">
-            {issues.map((issue) => (
-              <li key={issue}>{issue}</li>
-            ))}
-          </ul>
-        )}
-      </div>
     </div>
   );
 }

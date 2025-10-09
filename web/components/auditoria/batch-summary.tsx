@@ -1,4 +1,4 @@
-import { BadgeCheck, Clock, RefreshCw, Users } from "lucide-react";
+import { BadgeCheck, Clock, Loader2, RefreshCw, Users } from "lucide-react";
 
 import type { AuditListResponse } from "@/lib/api/types";
 
@@ -9,9 +9,10 @@ type BatchSummaryProps = {
     exported_at?: string | null;
     exported_by?: string | null;
   } | null;
+  isRefreshing?: boolean;
 };
 
-export function BatchSummary({ response, batchId, manifestInfo }: BatchSummaryProps) {
+export function BatchSummary({ response, batchId, manifestInfo, isRefreshing }: BatchSummaryProps) {
   if (!response || !batchId) {
     return null;
   }
@@ -50,22 +51,27 @@ export function BatchSummary({ response, batchId, manifestInfo }: BatchSummaryPr
           <span className="text-2xl font-semibold text-foreground">{item.value}</span>
         </div>
       ))}
-      <div className="sm:col-span-4">
-        <p className="text-xs text-muted-foreground">
-          Lote: <span className="font-semibold text-foreground">{batchId}</span>
-        </p>
-        {manifestInfo?.exported_at ? (
-          <p className="text-xs text-muted-foreground">
-            Última exportação: {new Date(manifestInfo.exported_at).toLocaleString()} por {" "}
-            <span className="font-medium text-foreground">
-              {manifestInfo.exported_by ?? "desconhecido"}
-            </span>
+      <div className="sm:col-span-4 flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p>
+            Lote: <span className="font-semibold text-foreground">{batchId}</span>
           </p>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Nenhuma exportação registrada para este lote.
-          </p>
-        )}
+          {manifestInfo?.exported_at ? (
+            <p>
+              Última exportação: {new Date(manifestInfo.exported_at).toLocaleString()} por {" "}
+              <span className="font-medium text-foreground">
+                {manifestInfo.exported_by ?? "desconhecido"}
+              </span>
+            </p>
+          ) : (
+            <p>Nenhuma exportação registrada para este lote.</p>
+          )}
+        </div>
+        {isRefreshing ? (
+          <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Atualizando métricas…
+          </span>
+        ) : null}
       </div>
     </div>
   );
