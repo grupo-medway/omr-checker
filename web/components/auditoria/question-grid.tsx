@@ -73,6 +73,33 @@ export function QuestionGrid({
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return;
       }
+
+      // Navegação entre issues com Tab/Shift+Tab ou ↑/↓
+      if (event.key === "Tab" || event.key === "ArrowDown" || event.key === "ArrowUp") {
+        const issueQuestions = sortedResponses
+          .filter((r) => issues.has(r.question))
+          .map((r) => r.question);
+
+        if (issueQuestions.length > 1) {
+          const currentIndex = issueQuestions.indexOf(activeQuestion);
+
+          if (event.key === "ArrowUp" || (event.key === "Tab" && event.shiftKey)) {
+            event.preventDefault();
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : issueQuestions.length - 1;
+            setActiveQuestion(issueQuestions[prevIndex]);
+            return;
+          }
+
+          if (event.key === "ArrowDown" || event.key === "Tab") {
+            event.preventDefault();
+            const nextIndex = currentIndex < issueQuestions.length - 1 ? currentIndex + 1 : 0;
+            setActiveQuestion(issueQuestions[nextIndex]);
+            return;
+          }
+        }
+      }
+
+      // Mapear tecla para resposta (A-E, 1-5, 0)
       const mapped = mapKeyToAnswer(event.key);
       if (mapped) {
         event.preventDefault();
@@ -82,7 +109,7 @@ export function QuestionGrid({
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeQuestion, onChange]);
+  }, [activeQuestion, onChange, sortedResponses, issues]);
 
   const pageCount = Math.max(1, Math.ceil(sortedResponses.length / PAGE_SIZE));
   const pagedResponses = useMemo(

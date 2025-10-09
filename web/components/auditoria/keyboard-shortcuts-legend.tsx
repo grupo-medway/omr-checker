@@ -55,6 +55,10 @@ export function KeyboardShortcutsLegend() {
               <div className="space-y-2">
                 <ShortcutRow keys={["←"]} description="Cartão anterior" />
                 <ShortcutRow keys={["→"]} description="Próximo cartão" />
+                <ShortcutRow keys={["↑"]} description="Issue anterior" />
+                <ShortcutRow keys={["↓"]} description="Próxima issue" />
+                <ShortcutRow keys={["Tab"]} description="Próxima issue" />
+                <ShortcutRow keys={["Shift", "Tab"]} description="Issue anterior" />
               </div>
             </div>
 
