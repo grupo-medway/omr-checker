@@ -462,10 +462,10 @@ export default function AuditoriaPage() {
             />
           </aside>
 
-          <section className="flex h-full flex-col">
+          <section className="flex flex-col" style={{ height: "calc(100vh - 180px)" }}>
             {showWorkspace && currentDetail ? (
-              <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_480px] h-[calc(100vh-280px)]">
-                <div className="flex flex-col gap-4">
+              <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_480px]">
+                <div className="flex flex-col gap-4 h-full">
                   <AuditImageViewer
                     imageUrl={currentDetail.image_url}
                     markedImageUrl={currentDetail.marked_image_url}

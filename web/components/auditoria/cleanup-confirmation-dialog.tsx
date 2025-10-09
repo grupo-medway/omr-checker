@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -69,7 +68,7 @@ export function CleanupConfirmationDialog({
           </div>
         </DialogHeader>
 
-        <DialogDescription className="space-y-4 text-foreground">
+        <div className="space-y-4">
           <p className="font-medium text-destructive">
             ⚠️ Esta ação é IRREVERSÍVEL
           </p>
@@ -105,7 +104,7 @@ export function CleanupConfirmationDialog({
               perdidos permanentemente
             </label>
           </div>
-        </DialogDescription>
+        </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button

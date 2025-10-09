@@ -41,13 +41,16 @@ export function QuestionGrid({
 
   useEffect(() => {
     if (sortedResponses.length > 0) {
-      setActiveQuestion(sortedResponses[0]?.question ?? null);
+      // Auto-focus primeira issue, se houver; senão, primeira questão
+      const firstIssue = sortedResponses.find((r) => issues.has(r.question));
+      const targetQuestion = firstIssue?.question ?? sortedResponses[0]?.question ?? null;
+      setActiveQuestion(targetQuestion);
       setPageIndex(0);
     } else {
       setActiveQuestion(null);
       setPageIndex(0);
     }
-  }, [sortedResponses]);
+  }, [sortedResponses, issues]);
 
   useEffect(() => {
     if (!activeQuestion) return;
@@ -149,7 +152,7 @@ export function QuestionGrid({
               key={question}
               className={cn(
                 "flex flex-col gap-2 rounded-md border p-3 text-sm transition-all",
-                isActive && "ring-2 ring-primary shadow-lg scale-[1.02]",
+                isActive && "ring-4 ring-primary shadow-xl scale-105",
                 hasIssue &&
                   "border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-950/20",
                 !hasIssue && "border-border/60 bg-muted/10"
