@@ -195,6 +195,8 @@ export function useCleanupBatchMutation(batchId: string | null) {
   });
 }
 
+export type IssueType = "multi-marked" | "unmarked" | "invalid" | "unknown";
+
 export function useAuditIssues(detail: AuditDetail | undefined) {
   return useMemo(() => {
     if (!detail) return new Set<string>();
@@ -202,6 +204,35 @@ export function useAuditIssues(detail: AuditDetail | undefined) {
       .map((issue) => issue.split(":")[0]?.trim())
       .filter(Boolean);
     return new Set(issueQuestions as string[]);
+  }, [detail]);
+}
+
+export function useAuditIssuesMap(detail: AuditDetail | undefined) {
+  return useMemo(() => {
+    if (!detail) return new Map<string, IssueType>();
+
+    const issuesMap = new Map<string, IssueType>();
+
+    detail.issues.forEach((issue) => {
+      const [questionId, ...descParts] = issue.split(":");
+      const description = descParts.join(":").toLowerCase().trim();
+      const question = questionId?.trim();
+
+      if (!question) return;
+
+      let type: IssueType = "unknown";
+      if (description.includes("multi")) {
+        type = "multi-marked";
+      } else if (description.includes("unmarked") || description.includes("not marked")) {
+        type = "unmarked";
+      } else if (description.includes("invalid")) {
+        type = "invalid";
+      }
+
+      issuesMap.set(question, type);
+    });
+
+    return issuesMap;
   }, [detail]);
 }
 

@@ -20,6 +20,7 @@ import { useAuditCredentials } from "@/components/audit-credentials-provider";
 import {
   useAuditDetailQuery,
   useAuditIssues,
+  useAuditIssuesMap,
   useAuditListQuery,
   useCleanupBatchMutation,
   useExportBatchMutation,
@@ -64,6 +65,7 @@ export default function AuditoriaPage() {
 
   const currentDetail = detailQuery.data;
   const issuesSet = useAuditIssues(currentDetail);
+  const issuesMap = useAuditIssuesMap(currentDetail);
 
   useEffect(() => {
     if (currentDetail) {
@@ -462,7 +464,7 @@ export default function AuditoriaPage() {
             />
           </aside>
 
-          <section className="flex flex-col" style={{ height: "calc(100vh - 180px)" }}>
+          <section className="flex flex-col min-h-[400px]" style={{ height: "calc(100vh - 180px)" }}>
             {showWorkspace && currentDetail ? (
               <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_480px]">
                 <div className="flex flex-col gap-4 h-full">
@@ -504,6 +506,7 @@ export default function AuditoriaPage() {
                       responses={currentDetail.responses}
                       currentAnswers={answers}
                       issues={issuesSet}
+                      issuesMap={issuesMap}
                       onChange={handleAnswerChange}
                       isSaving={submitDecision.isPending}
                     />

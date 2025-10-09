@@ -64,7 +64,7 @@ export function AuditImageViewer({ imageUrl, markedImageUrl }: AuditImageViewerP
 
       <TransformWrapper wheel={{ step: 0.1 }} minScale={0.5} initialScale={hasMarked ? 0.9 : 1}>
         {({ zoomIn, zoomOut, resetTransform }) => (
-          <div className="relative flex h-full min-h-[420px] flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/10">
+          <div className="relative flex h-full min-h-[420px] max-h-[800px] flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/10">
             <div className="absolute right-3 top-3 z-10 flex gap-2">
               <Button type="button" variant="secondary" size="icon" onClick={() => zoomOut()}>
                 <Minimize2 className="h-4 w-4" />

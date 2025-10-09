@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle, XCircle } from "lucide-react";
 
 import type { AuditResponseModel } from "@/lib/api/types";
+import type { IssueType } from "@/hooks/useAuditoria";
 import { normalizeAnswer } from "@/lib/utils/normalize";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -16,14 +17,57 @@ type QuestionGridProps = {
   currentAnswers: Record<string, string>;
   onChange: (question: string, value: string) => void;
   issues: Set<string>;
+  issuesMap: Map<string, IssueType>;
   isSaving?: boolean;
 };
+
+function getIssueConfig(issueType: IssueType | undefined) {
+  switch (issueType) {
+    case "multi-marked":
+      return {
+        variant: "destructive" as const,
+        icon: AlertCircle,
+        label: "Multi-marcado",
+        borderColor: "border-l-red-500",
+        bgColor: "bg-red-50 dark:bg-red-950/20",
+        textColor: "text-red-700 dark:text-red-400",
+      };
+    case "unmarked":
+      return {
+        variant: "warning" as const,
+        icon: AlertTriangle,
+        label: "Não marcado",
+        borderColor: "border-l-amber-500",
+        bgColor: "bg-amber-50 dark:bg-amber-950/20",
+        textColor: "text-amber-700 dark:text-amber-400",
+      };
+    case "invalid":
+      return {
+        variant: "secondary" as const,
+        icon: XCircle,
+        label: "Inválido",
+        borderColor: "border-l-gray-500",
+        bgColor: "bg-gray-50 dark:bg-gray-950/20",
+        textColor: "text-gray-700 dark:text-gray-400",
+      };
+    default:
+      return {
+        variant: "warning" as const,
+        icon: AlertTriangle,
+        label: "Issue",
+        borderColor: "border-l-amber-500",
+        bgColor: "bg-amber-50 dark:bg-amber-950/20",
+        textColor: "text-amber-700 dark:text-amber-400",
+      };
+  }
+}
 
 export function QuestionGrid({
   responses,
   currentAnswers,
   onChange,
   issues,
+  issuesMap,
   isSaving,
 }: QuestionGridProps) {
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
@@ -173,6 +217,8 @@ export function QuestionGrid({
           const isDirty = normalizedCurrent !== normalizedBaseline;
           const isActive = activeQuestion === question;
           const hasIssue = issues.has(question);
+          const issueType = issuesMap.get(question);
+          const issueConfig = hasIssue ? getIssueConfig(issueType) : null;
 
           return (
             <article
@@ -180,8 +226,7 @@ export function QuestionGrid({
               className={cn(
                 "flex flex-col gap-2 rounded-md border p-3 text-sm transition-all",
                 isActive && "ring-4 ring-primary shadow-xl scale-105",
-                hasIssue &&
-                  "border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-950/20",
+                hasIssue && `border-l-4 ${issueConfig?.borderColor} ${issueConfig?.bgColor}`,
                 !hasIssue && "border-border/60 bg-muted/10"
               )}
             >
@@ -191,7 +236,7 @@ export function QuestionGrid({
                   onClick={() => setActiveQuestion(question)}
                   className={cn(
                     "font-semibold text-left",
-                    hasIssue && "text-amber-700 dark:text-amber-400",
+                    hasIssue && issueConfig?.textColor,
                     !hasIssue && "text-foreground"
                   )}
                 >
@@ -203,10 +248,10 @@ export function QuestionGrid({
                       Editado
                     </span>
                   )}
-                  {hasIssue && (
-                    <Badge variant="warning" className="gap-1 shrink-0">
-                      <AlertTriangle className="h-3 w-3" />
-                      Issue
+                  {hasIssue && issueConfig && (
+                    <Badge variant={issueConfig.variant} className="gap-1 shrink-0">
+                      <issueConfig.icon className="h-3 w-3" />
+                      {issueConfig.label}
                     </Badge>
                   )}
                 </div>
