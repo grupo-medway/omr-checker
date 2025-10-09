@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AlertCircle, AlertTriangle, XCircle } from "lucide-react";
 
@@ -73,6 +73,7 @@ export function QuestionGrid({
   showIssuesOnly = false,
 }: QuestionGridProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const [focusedQuestion, setFocusedQuestion] = useState<string | null>(null);
 
   // Filter and sort responses
   const sortedResponses = useMemo(() => {
@@ -106,32 +107,95 @@ export function QuestionGrid({
     overscan: 5, // Render 5 extra items outside viewport
   });
 
-  // Auto-scroll to first issue on load
+  // Auto-scroll AND auto-focus first issue on load
   useEffect(() => {
-    if (sortedResponses.length > 0 && !showIssuesOnly) {
+    if (sortedResponses.length > 0) {
       const firstIssueIndex = sortedResponses.findIndex((r) =>
         issues.has(r.question)
       );
 
       if (firstIssueIndex !== -1) {
+        const firstIssue = sortedResponses[firstIssueIndex];
+        setFocusedQuestion(firstIssue.question);
+
         // Wait for next frame to ensure DOM is ready
         requestAnimationFrame(() => {
           virtualizer.scrollToIndex(firstIssueIndex, {
             align: "center",
             behavior: "smooth",
           });
+
+          // Focus the element after scroll
+          setTimeout(() => {
+            const element = document.querySelector(`[data-question="${firstIssue.question}"]`) as HTMLElement;
+            element?.focus();
+          }, 100);
         });
+      } else {
+        // No issues, focus first question
+        const firstQuestion = sortedResponses[0]?.question;
+        if (firstQuestion) {
+          setFocusedQuestion(firstQuestion);
+          setTimeout(() => {
+            const element = document.querySelector(`[data-question="${firstQuestion}"]`) as HTMLElement;
+            element?.focus();
+          }, 100);
+        }
       }
     }
   }, [sortedResponses, issues, showIssuesOnly, virtualizer]);
 
-  // Keyboard navigation
+  // Keyboard navigation (answers + arrow navigation between issues)
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (isSaving) return;
 
+      // Get list of issue questions for navigation
+      const issueQuestions = sortedResponses
+        .filter((r) => issues.has(r.question))
+        .map((r) => r.question);
+
+      // Arrow Down/Up: Navigate between issues
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (issueQuestions.length > 0) {
+          e.preventDefault();
+
+          const currentIndex = focusedQuestion
+            ? issueQuestions.indexOf(focusedQuestion)
+            : -1;
+
+          let nextIndex: number;
+          if (e.key === "ArrowDown") {
+            nextIndex = currentIndex < issueQuestions.length - 1 ? currentIndex + 1 : 0;
+          } else {
+            nextIndex = currentIndex > 0 ? currentIndex - 1 : issueQuestions.length - 1;
+          }
+
+          const nextQuestion = issueQuestions[nextIndex];
+          setFocusedQuestion(nextQuestion);
+
+          // Scroll to question
+          const responseIndex = sortedResponses.findIndex((r) => r.question === nextQuestion);
+          if (responseIndex !== -1) {
+            virtualizer.scrollToIndex(responseIndex, {
+              align: "center",
+              behavior: "smooth",
+            });
+          }
+
+          // Focus element
+          setTimeout(() => {
+            const element = document.querySelector(`[data-question="${nextQuestion}"]`) as HTMLElement;
+            element?.focus();
+          }, 100);
+
+          return;
+        }
+      }
+
+      // Get active question from focused element or state
       const target = e.target as HTMLElement;
-      const activeQuestion = target.closest("[data-question]")?.getAttribute("data-question");
+      const activeQuestion = target.closest("[data-question]")?.getAttribute("data-question") || focusedQuestion;
 
       if (!activeQuestion) return;
 
@@ -151,7 +215,7 @@ export function QuestionGrid({
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [onChange, isSaving]);
+  }, [onChange, isSaving, sortedResponses, issues, focusedQuestion, virtualizer]);
 
   if (sortedResponses.length === 0) {
     return (
@@ -192,16 +256,22 @@ export function QuestionGrid({
           const issueType = issuesMap.get(question);
           const issueConfig = hasIssue ? getIssueConfig(issueType) : null;
 
+          const isFocused = focusedQuestion === question;
+
           return (
             <article
               key={virtualRow.key}
               data-index={virtualRow.index}
               data-question={question}
               ref={virtualizer.measureElement}
+              onClick={() => setFocusedQuestion(question)}
+              onFocus={() => setFocusedQuestion(question)}
               className={cn(
                 "absolute top-0 left-0 w-full",
                 "flex flex-col gap-3 rounded-md border p-3 mb-3 transition-all cursor-pointer",
                 "hover:shadow-md focus-within:ring-2 focus-within:ring-primary",
+                // Focus indicator
+                isFocused && "ring-2 ring-primary shadow-lg",
                 // Issue highlighting
                 hasIssue && `border-l-4 ${issueConfig?.borderColor} ${issueConfig?.bgColor}`,
                 !hasIssue && "border-border/60 bg-muted/10"
