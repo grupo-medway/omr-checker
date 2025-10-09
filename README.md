@@ -99,4 +99,55 @@ python3 main.py -i ./minhas-imagens -o ./meus-resultados
 
 ---
 
+## 🚀 Uso Local (API + Web)
+
+### Setup Completo
+
+```bash
+# Instalar todas as dependências (Python + Node.js)
+make install
+
+# Ou manualmente:
+python3 -m pip install --user -r requirements.txt requirements-api.txt requirements.dev.txt
+cd web && npm install
+```
+
+### Desenvolvimento
+
+```bash
+# Iniciar API + Web simultaneamente
+make dev
+
+# Ou individualmente:
+make api   # API em http://localhost:8000
+make web   # Web em http://localhost:3000
+```
+
+**Endpoints disponíveis:**
+- API: http://localhost:8000/docs (Swagger)
+- Web: http://localhost:3000
+- Auditoria: http://localhost:3000/auditoria
+
+### Comandos Úteis
+
+```bash
+make help           # Listar todos os comandos disponíveis
+make test           # Rodar todos os testes (pytest + vitest)
+make lint           # Executar pre-commit hooks
+make clean          # Limpar ambiente (storage + DB)
+make audit-demo     # Demonstração E2E do fluxo de auditoria
+make format         # Formatar código (black + isort)
+```
+
+### Fluxo de Auditoria
+
+1. Acesse http://localhost:3000/auditoria
+2. Selecione o template (ex: `evolucional-dia1`)
+3. Faça upload do ZIP com os cartões escaneados
+4. Revise e corrija os cartões problemáticos
+5. Exporte o CSV corrigido
+6. Limpe o lote quando finalizado
+
+---
+
 **Dica:** Use sempre o `--setLayout` primeiro para configurar visualmente seu template antes de processar as imagens reais!
