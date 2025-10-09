@@ -3,6 +3,7 @@
 import { ArrowLeft, ArrowRight, Check, Loader2, StickyNote } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type DecisionToolbarProps = {
   onSave: () => void;
@@ -13,6 +14,9 @@ type DecisionToolbarProps = {
   hasChanges: boolean;
   notes: string;
   onNotesChange: (value: string) => void;
+  currentIndex?: number;
+  totalCount?: number;
+  resolvedCount?: number;
 };
 
 export function DecisionToolbar({
@@ -24,9 +28,52 @@ export function DecisionToolbar({
   hasChanges,
   notes,
   onNotesChange,
+  currentIndex = 0,
+  totalCount = 0,
+  resolvedCount = 0,
 }: DecisionToolbarProps) {
+  const progressPercentage = totalCount > 0 ? (resolvedCount / totalCount) * 100 : 0;
+
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+      {/* Progress section */}
+      {totalCount > 0 && (
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+          {/* Header com números */}
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">
+              Cartão {currentIndex + 1} de {totalCount}
+            </span>
+            <span className="text-muted-foreground">
+              {resolvedCount} resolvidos ({Math.round(progressPercentage)}%)
+            </span>
+          </div>
+
+          {/* Progress bar */}
+          <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className={cn(
+                "absolute inset-y-0 left-0 rounded-full transition-all duration-500",
+                progressPercentage < 30 && "bg-red-500",
+                progressPercentage >= 30 && progressPercentage < 70 && "bg-amber-500",
+                progressPercentage >= 70 && "bg-green-500"
+              )}
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+
+          {/* Status message */}
+          {progressPercentage === 100 ? (
+            <p className="text-xs text-green-600 dark:text-green-500 font-medium text-center">
+              🎉 Todos os cartões resolvidos!
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center">
+              {totalCount - resolvedCount} cartões restantes
+            </p>
+          )}
+        </div>
+      )}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <Button

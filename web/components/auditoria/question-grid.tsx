@@ -20,6 +20,7 @@ type QuestionGridProps = {
   issuesMap: Map<string, IssueType>;
   isSaving?: boolean;
   showIssuesOnly?: boolean;
+  activeAuditId?: number | null;
 };
 
 function getIssueConfig(issueType: IssueType | undefined) {
@@ -71,6 +72,7 @@ export function QuestionGrid({
   issuesMap,
   isSaving,
   showIssuesOnly = false,
+  activeAuditId,
 }: QuestionGridProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [focusedQuestion, setFocusedQuestion] = useState<string | null>(null);
@@ -107,37 +109,83 @@ export function QuestionGrid({
     overscan: 5, // Render 5 extra items outside viewport
   });
 
-  // Auto-scroll to first issue on load
-  const initialScrollDone = useRef(false);
+  const issuesKey = useMemo(() => {
+    return Array.from(issues).sort().join("|");
+  }, [issues]);
+
+  const responsesKey = useMemo(() => {
+    return sortedResponses.map((response) => response.question).join("|");
+  }, [sortedResponses]);
+
+  const lastScrollKey = useRef<string | null>(null);
+
   useEffect(() => {
-    if (sortedResponses.length > 0 && !initialScrollDone.current) {
-      const firstIssueIndex = sortedResponses.findIndex((r) =>
-        issues.has(r.question)
-      );
+    lastScrollKey.current = null;
+  }, [activeAuditId, showIssuesOnly, responsesKey, issuesKey]);
 
-      if (firstIssueIndex !== -1) {
-        const firstIssue = sortedResponses[firstIssueIndex];
-        setFocusedQuestion(firstIssue.question);
+  // Auto-scroll to first issue on load/change with flash visual
+  useEffect(() => {
+    if (sortedResponses.length === 0) {
+      return;
+    }
 
-        // Scroll to first issue using virtualizer directly
-        requestAnimationFrame(() => {
-          virtualizer.scrollToIndex(firstIssueIndex, {
-            align: "center",
-            behavior: "smooth",
-          });
+    const scrollKey = `${activeAuditId ?? "none"}-${showIssuesOnly ? "issues" : "all"}-${issuesKey}-${responsesKey}`;
+    if (lastScrollKey.current === scrollKey) {
+      return;
+    }
+
+    lastScrollKey.current = scrollKey;
+
+    const firstIssueIndex = sortedResponses.findIndex((r) => issues.has(r.question));
+    let scrollTimer: ReturnType<typeof setTimeout> | null = null;
+    let flashStartTimer: ReturnType<typeof setTimeout> | null = null;
+    let flashCleanupTimer: ReturnType<typeof setTimeout> | null = null;
+
+    if (firstIssueIndex !== -1) {
+      const firstIssue = sortedResponses[firstIssueIndex];
+      setFocusedQuestion(firstIssue.question);
+
+      scrollTimer = window.setTimeout(() => {
+        virtualizer.scrollToIndex(firstIssueIndex, {
+          align: "start",
+          behavior: "smooth",
         });
 
-        initialScrollDone.current = true;
-      } else {
-        // No issues, focus first question
-        const firstQuestion = sortedResponses[0]?.question;
-        if (firstQuestion) {
-          setFocusedQuestion(firstQuestion);
-        }
-        initialScrollDone.current = true;
+        flashStartTimer = window.setTimeout(() => {
+          const element = document.querySelector(`[data-question="${firstIssue.question}"]`);
+          if (element) {
+            element.classList.add("ring-2", "ring-amber-500", "ring-offset-2");
+            flashCleanupTimer = window.setTimeout(() => {
+              element.classList.remove("ring-2", "ring-amber-500", "ring-offset-2");
+            }, 2000);
+          }
+        }, 400);
+      }, 250);
+    } else {
+      const firstQuestion = sortedResponses[0]?.question;
+      if (firstQuestion) {
+        setFocusedQuestion(firstQuestion);
+        scrollTimer = window.setTimeout(() => {
+          virtualizer.scrollToIndex(0, {
+            align: "start",
+            behavior: "smooth",
+          });
+        }, 250);
       }
     }
-  }, [sortedResponses, issues, virtualizer]);
+
+    return () => {
+      if (scrollTimer) {
+        clearTimeout(scrollTimer);
+      }
+      if (flashStartTimer) {
+        clearTimeout(flashStartTimer);
+      }
+      if (flashCleanupTimer) {
+        clearTimeout(flashCleanupTimer);
+      }
+    };
+  }, [activeAuditId, issues, issuesKey, responsesKey, showIssuesOnly, sortedResponses, virtualizer]);
 
   // Keyboard navigation (answers + arrow navigation between issues)
   useEffect(() => {

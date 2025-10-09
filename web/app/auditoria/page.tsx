@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronRight, Image as ImageIcon, List as ListIcon, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { ChevronDown, ChevronRight, Image as ImageIcon, List as ListIcon, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import { ExportActions } from "@/components/auditoria/export-actions";
 import { CredentialsDialog } from "@/components/auditoria/credentials-dialog";
 import { KeyboardShortcutsLegend } from "@/components/auditoria/keyboard-shortcuts-legend";
 import { CleanupConfirmationDialog } from "@/components/auditoria/cleanup-confirmation-dialog";
+import { showUnsavedChangesToast } from "@/components/auditoria/unsaved-changes-toast";
 import { useAuditCredentials } from "@/components/audit-credentials-provider";
 import {
   useAuditDetailQuery,
@@ -32,6 +33,7 @@ import {
 } from "@/hooks/useAuditoria";
 import type { AuditDetail, ProcessResponse } from "@/lib/api/types";
 import { normalizeAnswer, normalizeRaw } from "@/lib/utils/normalize";
+import { sortByPriority } from "@/lib/auditoria/sorting";
 
 export default function AuditoriaPage() {
   const { credentials, clearCredentials, hydrated } = useAuditCredentials();
@@ -42,14 +44,13 @@ export default function AuditoriaPage() {
   const [baselineAnswers, setBaselineAnswers] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState("");
   const [baselineNotes, setBaselineNotes] = useState("");
-  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   const [uploadOpen, setUploadOpen] = useState(!batchId);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [showCleanupDialog, setShowCleanupDialog] = useState(false);
   const [mobileTab, setMobileTab] = useState<"image" | "questions">("image");
   const [showIssuesOnly, setShowIssuesOnly] = useState(false);
+  const [sortMode, setSortMode] = useState<"priority" | "date">("priority");
 
   const listQuery = useAuditListQuery(
     {
@@ -128,33 +129,37 @@ export default function AuditoriaPage() {
     return false;
   }, [answers, baselineAnswers, baselineNotes, currentDetail, notes]);
 
-  const listItems = useMemo(
-    () => listQuery.data?.items ?? [],
-    [listQuery.data?.items],
-  );
+  const listItems = useMemo(() => listQuery.data?.items ?? [], [listQuery.data?.items]);
+
+  const orderedListItems = useMemo(() => {
+    if (sortMode === "priority") {
+      return sortByPriority(listItems);
+    }
+    return listItems;
+  }, [listItems, sortMode]);
   const currentIndex = useMemo(() => {
     if (!selectedAuditId) return -1;
-    return listItems.findIndex((item) => item.id === selectedAuditId);
-  }, [listItems, selectedAuditId]);
+    return orderedListItems.findIndex((item) => item.id === selectedAuditId);
+  }, [orderedListItems, selectedAuditId]);
 
   useEffect(() => {
     if (!selectedAuditId) return;
     if (currentIndex !== -1) return;
-    if (listItems.length === 0) {
+    if (orderedListItems.length === 0) {
       setSelectedAuditId(null);
       return;
     }
-    setSelectedAuditId(listItems[0].id);
-  }, [currentIndex, listItems, selectedAuditId]);
+    setSelectedAuditId(orderedListItems[0].id);
+  }, [currentIndex, orderedListItems, selectedAuditId]);
 
-  const previousId = currentIndex > 0 ? listItems[currentIndex - 1]?.id ?? null : null;
+  const previousId = currentIndex > 0 ? orderedListItems[currentIndex - 1]?.id ?? null : null;
   const nextId =
-    currentIndex >= 0 && currentIndex < listItems.length - 1
-      ? listItems[currentIndex + 1]?.id ?? null
+    currentIndex >= 0 && currentIndex < orderedListItems.length - 1
+      ? orderedListItems[currentIndex + 1]?.id ?? null
       : null;
 
-  const totalItems = listQuery.data?.total ?? listItems.length;
-  const fallbackPending = listItems.filter((item) => String(item.status).toUpperCase() === "PENDING").length;
+  const totalItems = listQuery.data?.total ?? orderedListItems.length;
+  const fallbackPending = orderedListItems.filter((item) => String(item.status).toUpperCase() === "PENDING").length;
   const pendingCount = listQuery.data?.pending ?? fallbackPending;
   const cardPosition = currentIndex >= 0 ? currentIndex + 1 : 0;
 
@@ -166,30 +171,7 @@ export default function AuditoriaPage() {
     setSelectedAuditId(firstItem?.id ?? null);
   };
 
-  const runOrQueueNavigation = useCallback(
-    (action: () => void) => {
-      if (hasChanges) {
-        setPendingNavigation(() => action);
-        setShowUnsavedDialog(true);
-      } else {
-        setPendingNavigation(null);
-        action();
-        refetchList();
-      }
-    },
-    [hasChanges, refetchList],
-  );
-
-  const handleSelectItem = (id: number) => {
-    if (id === selectedAuditId) return;
-    runOrQueueNavigation(() => setSelectedAuditId(id));
-  };
-
-  const handleAnswerChange = (question: string, value: string) => {
-    setAnswers((prev) => ({ ...prev, [question]: value }));
-  };
-
-  const handleSaveDecision = (onSaved?: (detail: AuditDetail) => void) => {
+  const handleSaveDecision = useCallback((onSaved?: (detail: AuditDetail) => void) => {
     if (!currentDetail) {
       toast.error("Nenhum item selecionado");
       return;
@@ -216,6 +198,49 @@ export default function AuditoriaPage() {
       onError: (error) => {
         toast.error(error.message || "Não foi possível salvar a decisão");
       },
+    });
+  }, [currentDetail, answers, notes, submitDecision, refetchList, manifestQuery]);
+
+  const runOrQueueNavigation = useCallback(
+    (action: () => void) => {
+      if (hasChanges) {
+        showUnsavedChangesToast({
+          onSave: async () => {
+            handleSaveDecision(() => {
+              action();
+              refetchList();
+            });
+          },
+          onDiscard: () => {
+            // Reseta answers para baseline
+            setAnswers(baselineAnswers);
+            setNotes(baselineNotes);
+            action();
+            refetchList();
+          },
+          onCancel: () => {
+            // Apenas fecha toast, não navega
+          },
+        });
+      } else {
+        action();
+        refetchList();
+      }
+    },
+    [hasChanges, handleSaveDecision, baselineAnswers, baselineNotes, refetchList],
+  );
+
+  const handleSelectItem = (id: number) => {
+    if (id === selectedAuditId) return;
+    runOrQueueNavigation(() => setSelectedAuditId(id));
+  };
+
+  const handleAnswerChange = (question: string, value: string) => {
+    // Usar callback para garantir que o estado é atualizado sincronamente
+    setAnswers((prev) => {
+      const updated = { ...prev, [question]: value };
+      // Forçar re-render síncrono para atualizar hasChanges
+      return updated;
     });
   };
 
@@ -270,43 +295,26 @@ export default function AuditoriaPage() {
 
   const showWorkspace = Boolean(currentDetail);
 
-  const handleCancelNavigation = () => {
-    setPendingNavigation(null);
-    setShowUnsavedDialog(false);
-  };
-
-  const handleDiscardNavigation = () => {
-    if (pendingNavigation) {
-      pendingNavigation();
-      refetchList();
-    }
-    handleCancelNavigation();
-  };
-
-  const handleSaveAndContinue = () => {
-    handleSaveDecision(() => {
-      if (pendingNavigation) {
-        pendingNavigation();
-      }
-      refetchList();
-      handleCancelNavigation();
-    });
-  };
-
   const handlePrevious = useCallback(() => {
     if (!previousId) return;
-    runOrQueueNavigation(() => setSelectedAuditId(previousId));
+    // Usar requestAnimationFrame para garantir que React processou todas as atualizações de estado
+    requestAnimationFrame(() => {
+      runOrQueueNavigation(() => setSelectedAuditId(previousId));
+    });
   }, [previousId, runOrQueueNavigation]);
 
   const handleNext = useCallback(() => {
     if (!nextId) return;
-    runOrQueueNavigation(() => setSelectedAuditId(nextId));
+    // Usar requestAnimationFrame para garantir que React processou todas as atualizações de estado
+    requestAnimationFrame(() => {
+      runOrQueueNavigation(() => setSelectedAuditId(nextId));
+    });
   }, [nextId, runOrQueueNavigation]);
 
   useEffect(() => {
     if (!showWorkspace) return;
     const handler = (event: KeyboardEvent) => {
-      if (showUnsavedDialog || submitDecision.isPending) {
+      if (submitDecision.isPending) {
         return;
       }
       const target = event.target as HTMLElement | null;
@@ -324,7 +332,7 @@ export default function AuditoriaPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [showWorkspace, showUnsavedDialog, submitDecision.isPending, previousId, nextId, handlePrevious, handleNext]);
+  }, [showWorkspace, submitDecision.isPending, previousId, nextId, handlePrevious, handleNext]);
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -337,16 +345,6 @@ export default function AuditoriaPage() {
         batchId={batchId}
         totalItems={totalItems}
       />
-
-      {showUnsavedDialog && currentDetail ? (
-        <UnsavedChangesDialog
-          fileId={currentDetail.file_id}
-          isSaving={submitDecision.isPending}
-          onCancel={handleCancelNavigation}
-          onDiscard={handleDiscardNavigation}
-          onSaveAndContinue={handleSaveAndContinue}
-        />
-      ) : null}
 
       <div className="mx-auto flex min-h-screen max-w-[1400px] flex-col gap-6 px-4 py-6 sm:px-6">
         <header className="flex flex-col justify-between gap-4 border-b border-border/40 pb-4 sm:flex-row sm:items-center">
@@ -479,13 +477,15 @@ export default function AuditoriaPage() {
               </Collapsible.Trigger>
               <Collapsible.Content className="mt-3">
                 <AuditList
-                  items={listQuery.data?.items}
+                  items={orderedListItems}
                   isLoading={listQuery.isLoading}
                   selectedId={selectedAuditId}
                   onSelect={handleSelectItem}
                   filterStatus={filterStatus}
                   onFilterStatus={setFilterStatus}
                   compact={true}
+                  sortMode={sortMode}
+                  onSortModeChange={setSortMode}
                 />
               </Collapsible.Content>
             </Collapsible.Root>
@@ -526,6 +526,7 @@ export default function AuditoriaPage() {
                     onChange={handleAnswerChange}
                     isSaving={submitDecision.isPending}
                     showIssuesOnly={showIssuesOnly}
+                    activeAuditId={selectedAuditId}
                   />
                 </TabsContent>
               </Tabs>
@@ -539,13 +540,16 @@ export default function AuditoriaPage() {
                 hasChanges={hasChanges}
                 notes={notes}
                 onNotesChange={setNotes}
+                currentIndex={currentIndex}
+                totalCount={totalItems}
+                resolvedCount={listQuery.data?.resolved ?? 0}
               />
             </>
           ) : batchId ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/40 bg-muted/10 p-6 text-center text-sm text-muted-foreground">
               <p>Selecione um cartão pendente na lista para iniciar a correção.</p>
               <p>
-                Cartões disponíveis: <strong>{listItems.length}</strong>
+                Cartões disponíveis: <strong>{orderedListItems.length}</strong>
               </p>
             </div>
           ) : (
@@ -560,12 +564,14 @@ export default function AuditoriaPage() {
           {/* Column 1: List */}
           <aside className="flex flex-col overflow-hidden border rounded-lg">
             <AuditList
-              items={listQuery.data?.items}
+              items={orderedListItems}
               isLoading={listQuery.isLoading}
               selectedId={selectedAuditId}
               onSelect={handleSelectItem}
               filterStatus={filterStatus}
               onFilterStatus={setFilterStatus}
+              sortMode={sortMode}
+              onSortModeChange={setSortMode}
             />
           </aside>
 
@@ -586,13 +592,16 @@ export default function AuditoriaPage() {
                   hasChanges={hasChanges}
                   notes={notes}
                   onNotesChange={setNotes}
+                  currentIndex={currentIndex}
+                  totalCount={totalItems}
+                  resolvedCount={listQuery.data?.resolved ?? 0}
                 />
               </>
             ) : batchId ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/40 bg-muted/10 p-6 text-center text-sm text-muted-foreground">
                 <p>Selecione um cartão pendente na lista para iniciar a correção.</p>
                 <p>
-                  Cartões disponíveis: <strong>{listItems.length}</strong>
+                  Cartões disponíveis: <strong>{orderedListItems.length}</strong>
                 </p>
               </div>
             ) : (
@@ -635,6 +644,7 @@ export default function AuditoriaPage() {
                   onChange={handleAnswerChange}
                   isSaving={submitDecision.isPending}
                   showIssuesOnly={showIssuesOnly}
+                  activeAuditId={selectedAuditId}
                 />
               </>
             ) : (
@@ -664,64 +674,4 @@ function toPayloadAnswers(answers: Record<string, string>) {
     acc[question] = value;
     return acc;
   }, {});
-}
-
-function formatStatus(status?: string | null) {
-  if (!status) return "—";
-  const normalized = status.toLowerCase();
-  if (normalized === "pending") return "Pendente";
-  if (normalized === "resolved") return "Resolvido";
-  if (normalized === "reopened") return "Reaberto";
-  return status;
-}
-
-type UnsavedChangesDialogProps = {
-  fileId: string;
-  isSaving: boolean;
-  onCancel: () => void;
-  onDiscard: () => void;
-  onSaveAndContinue: () => void;
-};
-
-function UnsavedChangesDialog({ fileId, isSaving, onCancel, onDiscard, onSaveAndContinue }: UnsavedChangesDialogProps) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-border/40 bg-card p-6 shadow-xl">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-start gap-3">
-            <div className="rounded-full bg-amber-500/10 p-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-            </div>
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <h2 className="text-base font-semibold text-foreground">Salvar alterações antes de continuar?</h2>
-              <p>
-                Você fez alterações no cartão <span className="font-medium text-foreground">{fileId}</span>. Escolha uma opção para seguir.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 text-xs text-muted-foreground">
-            <p>
-              <strong className="text-foreground">Salvar e continuar</strong>: registra as mudanças e avança para o próximo cartão.
-            </p>
-            <p>
-              <strong className="text-foreground">Descartar alterações</strong>: ignora as mudanças atuais.
-            </p>
-          </div>
-
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="ghost" onClick={onCancel} disabled={isSaving}>
-              Cancelar
-            </Button>
-            <Button type="button" variant="destructive" onClick={onDiscard} disabled={isSaving}>
-              Descartar alterações
-            </Button>
-            <Button type="button" onClick={onSaveAndContinue} disabled={isSaving}>
-              {isSaving ? "Salvando..." : "Salvar e continuar"}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }

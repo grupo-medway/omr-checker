@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, Loader2, Search, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, Search, XCircle, ArrowUpDown } from "lucide-react";
 
 import type { AuditListItem } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { getIssueSeverity } from "@/lib/auditoria/sorting";
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   pending: {
@@ -29,6 +31,8 @@ type AuditListProps = {
   filterStatus: string | null;
   onFilterStatus: (status: string | null) => void;
   compact?: boolean;
+  sortMode: "priority" | "date";
+  onSortModeChange: (mode: "priority" | "date") => void;
 };
 
 export function AuditList({
@@ -39,15 +43,20 @@ export function AuditList({
   filterStatus,
   onFilterStatus,
   compact = false,
+  sortMode,
+  onSortModeChange,
 }: AuditListProps) {
   const [search, setSearch] = useState("");
 
   const filteredItems = useMemo(() => {
     if (!items) return [];
+
+    const normalizedSearch = search.trim().toLowerCase();
+
     return items.filter((item) => {
       const matchesStatus = filterStatus ? item.status === filterStatus : true;
-      const matchesSearch = search
-        ? item.file_id.toLowerCase().includes(search.toLowerCase())
+      const matchesSearch = normalizedSearch
+        ? item.file_id.toLowerCase().includes(normalizedSearch)
         : true;
       return matchesStatus && matchesSearch;
     });
@@ -55,41 +64,54 @@ export function AuditList({
 
   return (
     <div className={cn("flex h-full flex-col gap-3", compact && "max-h-60")}>
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <label htmlFor="audit-search" className="sr-only">
-            Buscar cartões por identificador
-          </label>
-          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            id="audit-search"
-            type="search"
-            placeholder="Buscar por identificador"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            aria-label="Buscar cartões por identificador"
-            className="w-full rounded-md border border-input bg-background py-2 pl-8 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <label htmlFor="audit-search" className="sr-only">
+              Buscar cartões por identificador
+            </label>
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="audit-search"
+              type="search"
+              placeholder="Buscar por identificador"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              aria-label="Buscar cartões por identificador"
+              className="w-full rounded-md border border-input bg-background py-2 pl-8 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <div className="shrink-0">
+            <label htmlFor="audit-filter" className="sr-only">
+              Filtrar por status
+            </label>
+            <select
+              id="audit-filter"
+              value={filterStatus ?? ""}
+              onChange={(event) =>
+                onFilterStatus(event.target.value ? event.target.value : null)
+              }
+              aria-label="Filtrar cartões por status"
+              className="h-10 w-[150px] rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">Todos</option>
+              <option value="pending">Pendentes</option>
+              <option value="resolved">Resolvidos</option>
+              <option value="reopened">Reabertos</option>
+            </select>
+          </div>
         </div>
-        <div className="shrink-0">
-          <label htmlFor="audit-filter" className="sr-only">
-            Filtrar por status
-          </label>
-          <select
-            id="audit-filter"
-            value={filterStatus ?? ""}
-            onChange={(event) =>
-              onFilterStatus(event.target.value ? event.target.value : null)
-            }
-            aria-label="Filtrar cartões por status"
-            className="h-10 w-[150px] rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">Todos</option>
-            <option value="pending">Pendentes</option>
-            <option value="resolved">Resolvidos</option>
-            <option value="reopened">Reabertos</option>
-          </select>
-        </div>
+
+        {/* Sort toggle */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 w-full justify-start"
+          onClick={() => onSortModeChange(sortMode === "priority" ? "date" : "priority")}
+        >
+          <ArrowUpDown className="h-4 w-4" />
+          {sortMode === "priority" ? "Ordenado por prioridade" : "Ordenado por data"}
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-card">
@@ -104,28 +126,38 @@ export function AuditList({
           </div>
         ) : (
           <ul className="divide-y divide-border/60">
-            {filteredItems.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(item.id)}
-                  className={`flex w-full flex-col gap-1 p-3 text-left transition-colors hover:bg-accent/60 ${item.id === selectedId ? "bg-accent/40" : ""}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground">
-                      {item.file_id}
+            {filteredItems.map((item) => {
+              const severity = getIssueSeverity(item.issues);
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(item.id)}
+                    className={cn(
+                      "flex w-full flex-col gap-1 p-3 text-left transition-colors hover:bg-accent/60",
+                      item.id === selectedId && "bg-accent/40",
+                      severity === "critical" && "border-l-4 border-l-red-500",
+                      severity === "warning" && "border-l-4 border-l-amber-500",
+                      severity === "info" && "border-l-4 border-l-blue-500",
+                      severity === "other" && "border-l-4 border-l-indigo-500"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-foreground">
+                        {item.file_id}
+                      </span>
+                      <StatusBadge status={item.status} />
+                    </div>
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {item.issues.join(" • ") || "Sem issues registradas"}
+                    </p>
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      {new Date(item.created_at).toLocaleString()}
                     </span>
-                    <StatusBadge status={item.status} />
-                  </div>
-                  <p className="line-clamp-2 text-xs text-muted-foreground">
-                    {item.issues.join(" • ") || "Sem issues registradas"}
-                  </p>
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    {new Date(item.created_at).toLocaleString()}
-                  </span>
-                </button>
-              </li>
-            ))}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

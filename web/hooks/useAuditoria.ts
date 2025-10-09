@@ -86,7 +86,7 @@ export function useAuditListQuery(
         },
         credentials,
       ),
-    staleTime: 1000 * 15,
+    // Removido staleTime para garantir refetch após invalidação
   });
 }
 
