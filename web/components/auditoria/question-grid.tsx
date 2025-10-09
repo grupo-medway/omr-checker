@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 
 import type { AuditResponseModel } from "@/lib/api/types";
 import { normalizeAnswer } from "@/lib/utils/normalize";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const ANSWER_OPTIONS = ["A", "B", "C", "D", "E", "UNMARKED"] as const;
 const PAGE_SIZE = 60;
@@ -135,31 +138,49 @@ export function QuestionGrid({
           const question = response.question;
           const readValue = response.read_value ?? "";
           const currentValue = currentAnswers[question] ?? readValue ?? "";
-          const isIssue = issues.has(question);
           const normalizedCurrent = normalizeAnswer(currentValue);
           const normalizedBaseline = normalizeAnswer(response.corrected_value ?? readValue ?? "");
           const isDirty = normalizedCurrent !== normalizedBaseline;
           const isActive = activeQuestion === question;
+          const hasIssue = issues.has(question);
 
           return (
             <article
               key={question}
-              className={`flex flex-col gap-2 rounded-md border p-3 text-sm transition-shadow ${
-                isActive ? "border-ring shadow-sm" : "border-border/60"
-              } ${isIssue ? "bg-amber-500/10" : "bg-muted/10"}`}
+              className={cn(
+                "flex flex-col gap-2 rounded-md border p-3 text-sm transition-all",
+                isActive && "ring-2 ring-primary shadow-lg scale-[1.02]",
+                hasIssue &&
+                  "border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-950/20",
+                !hasIssue && "border-border/60 bg-muted/10"
+              )}
             >
-              <button
-                type="button"
-                onClick={() => setActiveQuestion(question)}
-                className="flex items-center justify-between text-left"
-              >
-                <span className="font-semibold text-foreground">{question}</span>
-                {isDirty ? (
-                  <span className="text-[11px] font-medium uppercase text-blue-600 dark:text-blue-300">
-                    Editado
-                  </span>
-                ) : null}
-              </button>
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveQuestion(question)}
+                  className={cn(
+                    "font-semibold text-left",
+                    hasIssue && "text-amber-700 dark:text-amber-400",
+                    !hasIssue && "text-foreground"
+                  )}
+                >
+                  {question}
+                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  {isDirty && (
+                    <span className="text-[11px] font-medium uppercase text-blue-600 dark:text-blue-300">
+                      Editado
+                    </span>
+                  )}
+                  {hasIssue && (
+                    <Badge variant="warning" className="gap-1 shrink-0">
+                      <AlertTriangle className="h-3 w-3" />
+                      Issue
+                    </Badge>
+                  )}
+                </div>
+              </div>
 
               <div className="flex flex-wrap gap-1.5">
                 {ANSWER_OPTIONS.map((option) => {

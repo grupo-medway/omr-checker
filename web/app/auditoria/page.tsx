@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import { QuestionGrid } from "@/components/auditoria/question-grid";
 import { DecisionToolbar } from "@/components/auditoria/decision-toolbar";
 import { ExportActions } from "@/components/auditoria/export-actions";
 import { CredentialsDialog } from "@/components/auditoria/credentials-dialog";
+import { KeyboardShortcutsLegend } from "@/components/auditoria/keyboard-shortcuts-legend";
+import { CleanupConfirmationDialog } from "@/components/auditoria/cleanup-confirmation-dialog";
 import { useAuditCredentials } from "@/components/audit-credentials-provider";
 import {
   useAuditDetailQuery,
@@ -38,6 +41,10 @@ export default function AuditoriaPage() {
   const [baselineNotes, setBaselineNotes] = useState("");
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(!batchId);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
 
   const listQuery = useAuditListQuery(
     {
@@ -83,6 +90,9 @@ export default function AuditoriaPage() {
       setBaselineAnswers({});
       setNotes("");
       setBaselineNotes("");
+      setUploadOpen(true);
+    } else {
+      setUploadOpen(false);
     }
   }, [batchId]);
 
@@ -229,10 +239,11 @@ export default function AuditoriaPage() {
     if (cleanupMutation.isPending) {
       return;
     }
-    const confirmed = window.confirm(
-      "Tem certeza que deseja limpar o lote? Esta ação removerá dados e arquivos exportados.",
-    );
-    if (!confirmed) return;
+    setShowCleanupDialog(true);
+  };
+
+  const handleConfirmedCleanup = async () => {
+    if (!batchId) return;
 
     try {
       await cleanupMutation.mutateAsync();
@@ -306,6 +317,14 @@ export default function AuditoriaPage() {
     <div className="relative min-h-screen bg-background">
       <CredentialsDialog />
 
+      <CleanupConfirmationDialog
+        open={showCleanupDialog}
+        onOpenChange={setShowCleanupDialog}
+        onConfirm={handleConfirmedCleanup}
+        batchId={batchId}
+        totalItems={totalItems}
+      />
+
       {showUnsavedDialog && currentDetail ? (
         <UnsavedChangesDialog
           fileId={currentDetail.file_id}
@@ -328,61 +347,108 @@ export default function AuditoriaPage() {
             </div>
           </div>
 
-          {hydrated && credentials.user ? (
-            <div className="flex items-center gap-3 rounded-lg border border-border/40 bg-card px-3 py-2 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <UserRound className="h-4 w-4" />
-                <span className="text-foreground font-medium">{credentials.user}</span>
+          <div className="flex items-center gap-3">
+            <KeyboardShortcutsLegend />
+
+            {hydrated && credentials.user ? (
+              <div className="flex items-center gap-3 rounded-lg border border-border/40 bg-card px-3 py-2 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <UserRound className="h-4 w-4" />
+                  <span className="text-foreground font-medium">{credentials.user}</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 text-xs"
+                  onClick={() => clearCredentials()}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Trocar usuário
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="gap-2 text-xs"
-                onClick={() => clearCredentials()}
-              >
-                <LogOut className="h-4 w-4" />
-                Trocar usuário
-              </Button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </header>
 
-        <UploadForm onProcessed={handleProcessed} disabled={!credentials.user} />
+        <Collapsible.Root open={uploadOpen} onOpenChange={setUploadOpen}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">
+              {batchId ? "Novo Lote" : "Upload de Cartões"}
+            </h2>
+            <Collapsible.Trigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2">
+                {uploadOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {uploadOpen ? "Ocultar" : "Mostrar"}
+              </Button>
+            </Collapsible.Trigger>
+          </div>
+          <Collapsible.Content>
+            <UploadForm onProcessed={handleProcessed} disabled={!credentials.user} />
+          </Collapsible.Content>
+        </Collapsible.Root>
 
         {batchId ? (
-          <BatchSummary
-            response={listQuery.data}
-            batchId={batchId}
-            isRefreshing={listQuery.isFetching}
-            manifestInfo={
-              manifestQuery.data && typeof manifestQuery.data === "object" && "exported_at" in manifestQuery.data
-                ? {
-                    exported_at: manifestQuery.data.exported_at,
-                    exported_by: manifestQuery.data.exported_by,
-                  }
-                : undefined
-            }
-          />
+          <Collapsible.Root open={summaryOpen} onOpenChange={setSummaryOpen}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">Métricas do Lote</h2>
+              <Collapsible.Trigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  {summaryOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  {summaryOpen ? "Ocultar" : "Mostrar"}
+                </Button>
+              </Collapsible.Trigger>
+            </div>
+            <Collapsible.Content>
+              <BatchSummary
+                response={listQuery.data}
+                batchId={batchId}
+                isRefreshing={listQuery.isFetching}
+                manifestInfo={
+                  manifestQuery.data && typeof manifestQuery.data === "object" && "exported_at" in manifestQuery.data
+                    ? {
+                        exported_at: manifestQuery.data.exported_at,
+                        exported_by: manifestQuery.data.exported_by,
+                      }
+                    : undefined
+                }
+              />
+            </Collapsible.Content>
+          </Collapsible.Root>
         ) : null}
 
-        <ExportActions
-          batchId={batchId}
-          disabled={!batchId || listQuery.isLoading}
-          isExporting={exportMutation.isPending}
-          isCleaning={cleanupMutation.isPending}
-          manifest={
-            manifestQuery.data && typeof manifestQuery.data === "object" && "exported_at" in manifestQuery.data
-              ? {
-                  exported_at: manifestQuery.data.exported_at,
-                  exported_by: manifestQuery.data.exported_by,
+        {batchId ? (
+          <Collapsible.Root open={exportOpen} onOpenChange={setExportOpen}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">Exportar e Limpar</h2>
+              <Collapsible.Trigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  {exportOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  {exportOpen ? "Ocultar" : "Mostrar"}
+                </Button>
+              </Collapsible.Trigger>
+            </div>
+            <Collapsible.Content>
+              <ExportActions
+                batchId={batchId}
+                disabled={!batchId || listQuery.isLoading}
+                isExporting={exportMutation.isPending}
+                isCleaning={cleanupMutation.isPending}
+                manifest={
+                  manifestQuery.data && typeof manifestQuery.data === "object" && "exported_at" in manifestQuery.data
+                    ? {
+                        exported_at: manifestQuery.data.exported_at,
+                        exported_by: manifestQuery.data.exported_by,
+                      }
+                    : undefined
                 }
-              : undefined
-          }
-          manifestLoading={manifestQuery.isLoading}
-          onExport={handleExport}
-          onCleanup={handleCleanup}
-        />
+                manifestLoading={manifestQuery.isLoading}
+                onExport={handleExport}
+                onCleanup={handleCleanup}
+              />
+            </Collapsible.Content>
+          </Collapsible.Root>
+        ) : null}
 
         <main className="grid flex-1 gap-6 pb-10 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="flex h-full flex-col gap-3">
@@ -398,7 +464,7 @@ export default function AuditoriaPage() {
 
           <section className="flex h-full flex-col">
             {showWorkspace && currentDetail ? (
-              <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_480px]">
+              <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_480px] h-[calc(100vh-280px)]">
                 <div className="flex flex-col gap-4">
                   <AuditImageViewer
                     imageUrl={currentDetail.image_url}
