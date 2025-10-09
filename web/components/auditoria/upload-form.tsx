@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Loader2, Upload } from "lucide-react";
+import { FileArchive, Info, Loader2, PlayCircle, Upload, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuditCredentials } from "@/components/audit-credentials-provider";
 import {
   useProcessOmrMutation,
@@ -16,6 +19,37 @@ type UploadFormProps = {
   onProcessed: (response: ProcessResponse) => void;
   disabled?: boolean;
 };
+
+type FileCardProps = {
+  file: File;
+  onRemove: () => void;
+};
+
+function FileCard({ file, onRemove }: FileCardProps) {
+  return (
+    <div className="flex items-center gap-3 rounded-md border border-border/40 bg-muted/50 p-3">
+      <FileArchive className="h-5 w-5 shrink-0 text-primary" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">
+          {file.name}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {(file.size / (1024 * 1024)).toFixed(2)} MB
+        </p>
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onRemove}
+        className="h-8 w-8 p-0 shrink-0"
+        aria-label="Remover arquivo"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
 
 export function UploadForm({ onProcessed, disabled }: UploadFormProps) {
   const { credentials } = useAuditCredentials();
@@ -56,6 +90,13 @@ export function UploadForm({ onProcessed, disabled }: UploadFormProps) {
     setSelectedFile(file);
   };
 
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    // Reset input value
+    const fileInput = document.getElementById("file") as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedTemplate) {
@@ -74,99 +115,118 @@ export function UploadForm({ onProcessed, disabled }: UploadFormProps) {
     processMutation.mutate({ file: selectedFile, template: selectedTemplate });
   };
 
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-lg border border-border/40 bg-card p-4 shadow-sm"
-    >
-      <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:gap-6">
-        <div className="flex w-full flex-col gap-2 sm:max-w-md">
-          <label
-            className="text-sm font-semibold text-foreground"
-            htmlFor="template"
-          >
-            Template
-          </label>
-          <select
-            id="template"
-            className="h-11 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            value={selectedTemplate}
-            onChange={(event) => setSelectedTemplate(event.target.value)}
-            disabled={templatesQuery.isLoading || processMutation.isPending || disabled}
-            aria-describedby="template-help"
-          >
-            {templates.length === 0 ? (
-              <option value="" disabled>
-                {templatesQuery.isLoading ? "Carregando..." : "Nenhum template"}
-              </option>
-            ) : null}
-            {templates.map((template) => (
-              <option key={template} value={template}>
-                {template}
-              </option>
-            ))}
-          </select>
-          <span id="template-help" className="text-xs text-muted-foreground">
-            Carregado automaticamente dos templates disponíveis no backend.
-          </span>
-        </div>
+  const canProcess = Boolean(selectedFile && selectedTemplate);
 
-        <div className="flex flex-1 flex-col gap-2">
-          <label
-            className="text-sm font-semibold text-foreground"
-            htmlFor="file"
-          >
-            Arquivo ZIP
-          </label>
-          <input
-            id="file"
-            type="file"
-            accept=".zip"
-            onChange={handleFileChange}
-            disabled={processMutation.isPending || disabled}
-            className="h-12 rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-describedby="file-help"
-          />
-          {selectedFile ? (
-            <span id="file-help" className="text-xs text-muted-foreground">
-              {selectedFile.name} – {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-            </span>
-          ) : (
-            <span id="file-help" className="text-xs text-muted-foreground">
-              Tamanho máximo conforme configuração do backend.
-            </span>
-          )}
-        </div>
-        <div className="flex flex-col items-stretch gap-2 md:min-w-[220px]">
-          <Button
-            type="submit"
-            disabled={
-              !selectedFile ||
-              !selectedTemplate ||
-              processMutation.isPending ||
-              disabled
-            }
-            className="h-14 justify-center gap-2 rounded-xl border border-primary bg-primary text-base font-semibold text-primary-foreground shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
-            aria-live="polite"
-          >
-            {processMutation.isPending ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Processando lote…
-              </span>
+  return (
+    <Card className="border-border/40 shadow-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base">Upload de Cartões</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* GRUPO 1: Configuração */}
+          <div className="space-y-2">
+            <label
+              className="text-sm font-medium text-foreground"
+              htmlFor="template"
+            >
+              Template do Cartão
+            </label>
+            <select
+              id="template"
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={selectedTemplate}
+              onChange={(event) => setSelectedTemplate(event.target.value)}
+              disabled={templatesQuery.isLoading || processMutation.isPending || disabled}
+            >
+              {templates.length === 0 ? (
+                <option value="" disabled>
+                  {templatesQuery.isLoading ? "Carregando..." : "Nenhum template"}
+                </option>
+              ) : null}
+              {templates.map((template) => (
+                <option key={template} value={template}>
+                  {template}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Carregado automaticamente dos templates disponíveis no backend
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* GRUPO 2: Upload */}
+          <div className="space-y-2">
+            <label
+              className="text-sm font-medium text-foreground"
+              htmlFor="file"
+            >
+              Arquivo ZIP
+            </label>
+            {!selectedFile ? (
+              <>
+                <div className="relative">
+                  <input
+                    id="file"
+                    type="file"
+                    accept=".zip"
+                    onChange={handleFileChange}
+                    disabled={processMutation.isPending || disabled}
+                    className="peer sr-only"
+                  />
+                  <label
+                    htmlFor="file"
+                    className="flex h-24 cursor-pointer items-center justify-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="h-6 w-6" />
+                      <span className="font-medium">Escolher arquivo ZIP</span>
+                    </div>
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Tamanho máximo conforme configuração do backend
+                </p>
+              </>
             ) : (
-              <span className="flex items-center gap-2">
-                <Upload className="h-4 w-4" aria-hidden />
-                Iniciar processamento
-              </span>
+              <FileCard file={selectedFile} onRemove={handleRemoveFile} />
             )}
-          </Button>
-          <p className="flex items-start gap-2 text-xs text-muted-foreground">
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5" aria-hidden />
-            Selecione template e ZIP válidos para liberar o processamento.
-          </p>
-        </div>
-      </div>
-    </form>
+          </div>
+
+          <Separator />
+
+          {/* GRUPO 3: Ação */}
+          <div className="space-y-3">
+            <Button
+              type="submit"
+              disabled={!canProcess || processMutation.isPending || disabled}
+              className="h-12 w-full gap-2 text-base font-semibold"
+            >
+              {processMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processando lote…
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="h-4 w-4" />
+                  Iniciar processamento
+                </>
+              )}
+            </Button>
+            {!canProcess && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Selecione um template e arquivo ZIP para continuar
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

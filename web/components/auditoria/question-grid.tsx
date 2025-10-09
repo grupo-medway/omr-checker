@@ -137,9 +137,9 @@ export function QuestionGrid({
     lastScrollKey.current = scrollKey;
 
     const firstIssueIndex = sortedResponses.findIndex((r) => issues.has(r.question));
-    let scrollTimer: ReturnType<typeof setTimeout> | null = null;
-    let flashStartTimer: ReturnType<typeof setTimeout> | null = null;
-    let flashCleanupTimer: ReturnType<typeof setTimeout> | null = null;
+    let scrollTimer: number | null = null;
+    let flashStartTimer: number | null = null;
+    let flashCleanupTimer: number | null = null;
 
     if (firstIssueIndex !== -1) {
       const firstIssue = sortedResponses[firstIssueIndex];

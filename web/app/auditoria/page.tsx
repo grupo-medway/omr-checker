@@ -384,9 +384,7 @@ export default function AuditoriaPage() {
 
         <Collapsible.Root open={uploadOpen} onOpenChange={setUploadOpen}>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">
-              {batchId ? "Novo Lote" : "Upload de Cartões"}
-            </h2>
+            <h2 className="text-lg font-semibold">Upload de Cartões</h2>
             <Collapsible.Trigger asChild>
               <Button variant="ghost" size="sm" className="gap-2">
                 {uploadOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -445,15 +443,6 @@ export default function AuditoriaPage() {
                 disabled={!batchId || listQuery.isLoading}
                 isExporting={exportMutation.isPending}
                 isCleaning={cleanupMutation.isPending}
-                manifest={
-                  manifestQuery.data && typeof manifestQuery.data === "object" && "exported_at" in manifestQuery.data
-                    ? {
-                        exported_at: manifestQuery.data.exported_at,
-                        exported_by: manifestQuery.data.exported_by,
-                      }
-                    : undefined
-                }
-                manifestLoading={manifestQuery.isLoading}
                 onExport={handleExport}
                 onCleanup={handleCleanup}
               />
