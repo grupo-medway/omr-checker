@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, Loader2, Search, XCircle } from "lucide-react";
 
 import type { AuditListItem } from "@/lib/api/types";
+import { cn } from "@/lib/utils";
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   pending: {
@@ -27,6 +28,7 @@ type AuditListProps = {
   onSelect: (id: number) => void;
   filterStatus: string | null;
   onFilterStatus: (status: string | null) => void;
+  compact?: boolean;
 };
 
 export function AuditList({
@@ -36,6 +38,7 @@ export function AuditList({
   onSelect,
   filterStatus,
   onFilterStatus,
+  compact = false,
 }: AuditListProps) {
   const [search, setSearch] = useState("");
 
@@ -51,7 +54,7 @@ export function AuditList({
   }, [filterStatus, items, search]);
 
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className={cn("flex h-full flex-col gap-3", compact && "max-h-60")}>
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -77,7 +80,7 @@ export function AuditList({
         </select>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-lg border border-border/40 bg-card">
+      <div className="flex-1 overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-card">
         {isLoading ? (
           <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando itens de auditoria...

@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronRight, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Image as ImageIcon, List as ListIcon, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import * as Collapsible from "@radix-ui/react-collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,8 @@ export default function AuditoriaPage() {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"image" | "questions">("image");
+  const [showIssuesOnly, setShowIssuesOnly] = useState(false);
 
   const listQuery = useAuditListQuery(
     {
@@ -97,6 +101,13 @@ export default function AuditoriaPage() {
       setUploadOpen(false);
     }
   }, [batchId]);
+
+  // Auto-switch to questions tab on mobile when issues detected
+  useEffect(() => {
+    if (issuesSet.size > 0 && mobileTab === "image" && typeof window !== "undefined" && window.innerWidth < 1024) {
+      setMobileTab("questions");
+    }
+  }, [issuesSet.size, mobileTab]);
 
   const hasChanges = useMemo(() => {
     if (!currentDetail) return false;
@@ -452,8 +463,102 @@ export default function AuditoriaPage() {
           </Collapsible.Root>
         ) : null}
 
-        <main className="grid flex-1 gap-6 pb-10 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="flex h-full flex-col gap-3">
+        {/* Mobile Layout: Tabs */}
+        <div className="lg:hidden flex flex-col gap-4 pb-10">
+          {/* Compact List (Collapsible) */}
+          {batchId && (
+            <Collapsible.Root defaultOpen={false}>
+              <Collapsible.Trigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  <span>
+                    Cartão {cardPosition} de {totalItems}
+                    {pendingCount > 0 && ` • ${pendingCount} pendentes`}
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </Collapsible.Trigger>
+              <Collapsible.Content className="mt-3">
+                <AuditList
+                  items={listQuery.data?.items}
+                  isLoading={listQuery.isLoading}
+                  selectedId={selectedAuditId}
+                  onSelect={handleSelectItem}
+                  filterStatus={filterStatus}
+                  onFilterStatus={setFilterStatus}
+                  compact={true}
+                />
+              </Collapsible.Content>
+            </Collapsible.Root>
+          )}
+
+          {showWorkspace && currentDetail ? (
+            <>
+              <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "image" | "questions")} className="flex-1">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="image">
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Imagem
+                  </TabsTrigger>
+                  <TabsTrigger value="questions">
+                    <ListIcon className="h-4 w-4 mr-2" />
+                    Questões
+                    {issuesSet.size > 0 && (
+                      <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1.5">
+                        {issuesSet.size}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="image" className="overflow-hidden mt-4 h-[calc(100vh-420px)]">
+                  <AuditImageViewer
+                    imageUrl={currentDetail.image_url}
+                    markedImageUrl={currentDetail.marked_image_url}
+                  />
+                </TabsContent>
+
+                <TabsContent value="questions" className="overflow-hidden mt-4 h-[calc(100vh-420px)]">
+                  <QuestionGrid
+                    responses={currentDetail.responses}
+                    currentAnswers={answers}
+                    issues={issuesSet}
+                    issuesMap={issuesMap}
+                    onChange={handleAnswerChange}
+                    isSaving={submitDecision.isPending}
+                    showIssuesOnly={showIssuesOnly}
+                  />
+                </TabsContent>
+              </Tabs>
+
+              <DecisionToolbar
+                onSave={() => handleSaveDecision()}
+                onPrev={previousId ? handlePrevious : undefined}
+                onNext={nextId ? handleNext : undefined}
+                disabled={!currentDetail}
+                isSaving={submitDecision.isPending}
+                hasChanges={hasChanges}
+                notes={notes}
+                onNotesChange={setNotes}
+              />
+            </>
+          ) : batchId ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/40 bg-muted/10 p-6 text-center text-sm text-muted-foreground">
+              <p>Selecione um cartão pendente na lista para iniciar a correção.</p>
+              <p>
+                Cartões disponíveis: <strong>{listItems.length}</strong>
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/40 bg-muted/10 p-6 text-center text-sm text-muted-foreground">
+              <p>Faça upload de um lote para visualizar cartões em auditoria.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Layout: 3 Columns */}
+        <main className="hidden lg:grid flex-1 gap-6 pb-10 h-[calc(100vh-180px)] lg:grid-cols-[280px_1fr_420px] overflow-hidden">
+          {/* Column 1: List */}
+          <aside className="flex flex-col overflow-hidden border rounded-lg">
             <AuditList
               items={listQuery.data?.items}
               isLoading={listQuery.isLoading}
@@ -464,66 +569,25 @@ export default function AuditoriaPage() {
             />
           </aside>
 
-          <section className="flex flex-col min-h-[400px]" style={{ height: "calc(100vh - 180px)" }}>
+          {/* Column 2: Image + Toolbar */}
+          <section className="flex flex-col gap-4 overflow-hidden">
             {showWorkspace && currentDetail ? (
-              <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_480px]">
-                <div className="flex flex-col gap-4 h-full">
-                  <AuditImageViewer
-                    imageUrl={currentDetail.image_url}
-                    markedImageUrl={currentDetail.marked_image_url}
-                  />
-                </div>
-
-                <div className="flex h-full flex-col gap-4">
-                  <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm font-semibold text-foreground">
-                        Nome do arquivo: {currentDetail.file_id}
-                      </p>
-                      <span className="text-xs text-muted-foreground">
-                        Cartão {cardPosition} de {totalItems} • Pendentes restantes: {pendingCount}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        Status atual: {formatStatus(currentDetail.status)}
-                      </span>
-                    </div>
-                    <div className="mt-3">
-                      <p className="text-xs font-medium text-foreground">Issues detectadas</p>
-                      {currentDetail.issues.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">Nenhum problema registrado.</p>
-                      ) : (
-                        <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
-                          {currentDetail.issues.map((issue) => (
-                            <li key={issue}>{issue}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-hidden">
-                    <QuestionGrid
-                      responses={currentDetail.responses}
-                      currentAnswers={answers}
-                      issues={issuesSet}
-                      issuesMap={issuesMap}
-                      onChange={handleAnswerChange}
-                      isSaving={submitDecision.isPending}
-                    />
-                  </div>
-
-                  <DecisionToolbar
-                    onSave={() => handleSaveDecision()}
-                    onPrev={previousId ? handlePrevious : undefined}
-                    onNext={nextId ? handleNext : undefined}
-                    disabled={!currentDetail}
-                    isSaving={submitDecision.isPending}
-                    hasChanges={hasChanges}
-                    notes={notes}
-                    onNotesChange={setNotes}
-                  />
-                </div>
-              </div>
+              <>
+                <AuditImageViewer
+                  imageUrl={currentDetail.image_url}
+                  markedImageUrl={currentDetail.marked_image_url}
+                />
+                <DecisionToolbar
+                  onSave={() => handleSaveDecision()}
+                  onPrev={previousId ? handlePrevious : undefined}
+                  onNext={nextId ? handleNext : undefined}
+                  disabled={!currentDetail}
+                  isSaving={submitDecision.isPending}
+                  hasChanges={hasChanges}
+                  notes={notes}
+                  onNotesChange={setNotes}
+                />
+              </>
             ) : batchId ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/40 bg-muted/10 p-6 text-center text-sm text-muted-foreground">
                 <p>Selecione um cartão pendente na lista para iniciar a correção.</p>
@@ -537,6 +601,48 @@ export default function AuditoriaPage() {
               </div>
             )}
           </section>
+
+          {/* Column 3: Questions */}
+          <aside className="flex flex-col overflow-hidden border rounded-lg">
+            {showWorkspace && currentDetail ? (
+              <>
+                {/* Header with summary and toggle */}
+                <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+                  <div className="text-sm">
+                    <span className="font-semibold">
+                      Cartão {cardPosition} de {totalItems}
+                    </span>
+                    {issuesSet.size > 0 && (
+                      <span className="ml-2 text-destructive">
+                        • {issuesSet.size} {issuesSet.size === 1 ? "issue" : "issues"}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowIssuesOnly(!showIssuesOnly)}
+                  >
+                    {showIssuesOnly ? "Mostrar todas" : "Apenas issues"}
+                  </Button>
+                </div>
+
+                <QuestionGrid
+                  responses={currentDetail.responses}
+                  currentAnswers={answers}
+                  issues={issuesSet}
+                  issuesMap={issuesMap}
+                  onChange={handleAnswerChange}
+                  isSaving={submitDecision.isPending}
+                  showIssuesOnly={showIssuesOnly}
+                />
+              </>
+            ) : (
+              <div className="flex flex-1 items-center justify-center text-muted-foreground">
+                Selecione um cartão
+              </div>
+            )}
+          </aside>
         </main>
       </div>
     </div>

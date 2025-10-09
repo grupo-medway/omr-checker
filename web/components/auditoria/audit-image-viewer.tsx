@@ -62,7 +62,14 @@ export function AuditImageViewer({ imageUrl, markedImageUrl }: AuditImageViewerP
         </div>
       </div>
 
-      <TransformWrapper wheel={{ step: 0.1 }} minScale={0.5} initialScale={hasMarked ? 0.9 : 1}>
+      <TransformWrapper
+        wheel={{ step: 0.1 }}
+        minScale={0.5}
+        maxScale={3}
+        initialScale={hasMarked ? 0.9 : 1}
+        panning={{ disabled: false }}
+        doubleClick={{ disabled: false }}
+      >
         {({ zoomIn, zoomOut, resetTransform }) => (
           <div className="relative flex h-full min-h-[420px] max-h-[800px] flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/10">
             <div className="absolute right-3 top-3 z-10 flex gap-2">
@@ -76,7 +83,7 @@ export function AuditImageViewer({ imageUrl, markedImageUrl }: AuditImageViewerP
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
-            <TransformComponent wrapperClass="!h-full">
+            <TransformComponent wrapperClass="!h-full !overflow-hidden">
               <div className="flex h-full w-full items-center justify-center">
                 <img
                   src={displayUrl}

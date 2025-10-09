@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { AlertCircle, AlertTriangle, XCircle } from "lucide-react";
 
 import type { AuditResponseModel } from "@/lib/api/types";
@@ -10,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const ANSWER_OPTIONS = ["A", "B", "C", "D", "E", "UNMARKED"] as const;
-const PAGE_SIZE = 60;
 
 type QuestionGridProps = {
   responses: AuditResponseModel[];
@@ -19,6 +19,7 @@ type QuestionGridProps = {
   issues: Set<string>;
   issuesMap: Map<string, IssueType>;
   isSaving?: boolean;
+  showIssuesOnly?: boolean;
 };
 
 function getIssueConfig(issueType: IssueType | undefined) {
@@ -69,179 +70,158 @@ export function QuestionGrid({
   issues,
   issuesMap,
   isSaving,
+  showIssuesOnly = false,
 }: QuestionGridProps) {
-  const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
-  const [pageIndex, setPageIndex] = useState(0);
+  const parentRef = useRef<HTMLDivElement>(null);
 
-  const sortedResponses = useMemo(
-    () =>
-      [...responses].sort((a, b) => {
-        const qa = parseQuestionIndex(a.question);
-        const qb = parseQuestionIndex(b.question);
-        return qa - qb;
-      }),
-    [responses],
-  );
+  // Filter and sort responses
+  const sortedResponses = useMemo(() => {
+    let filtered = responses;
 
-  useEffect(() => {
-    if (sortedResponses.length > 0) {
-      // Auto-focus primeira issue, se houver; senão, primeira questão
-      const firstIssue = sortedResponses.find((r) => issues.has(r.question));
-      const targetQuestion = firstIssue?.question ?? sortedResponses[0]?.question ?? null;
-      setActiveQuestion(targetQuestion);
-      setPageIndex(0);
-    } else {
-      setActiveQuestion(null);
-      setPageIndex(0);
+    // Filter only issues if toggle active
+    if (showIssuesOnly) {
+      filtered = responses.filter((r) => issues.has(r.question));
     }
-  }, [sortedResponses, issues]);
 
+    // Sort: issues first, then by number
+    return [...filtered].sort((a, b) => {
+      const aHasIssue = issues.has(a.question);
+      const bHasIssue = issues.has(b.question);
+
+      if (aHasIssue && !bHasIssue) return -1;
+      if (!aHasIssue && bHasIssue) return 1;
+
+      // Extract question number (assumes "Q1", "Q2", etc or just "1", "2")
+      const aNum = parseQuestionIndex(a.question);
+      const bNum = parseQuestionIndex(b.question);
+      return aNum - bNum;
+    });
+  }, [responses, issues, showIssuesOnly]);
+
+  // Virtual scrolling
+  const virtualizer = useVirtualizer({
+    count: sortedResponses.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 140, // Estimated height of each card (px)
+    overscan: 5, // Render 5 extra items outside viewport
+  });
+
+  // Auto-scroll to first issue on load
   useEffect(() => {
-    if (!activeQuestion) return;
-    const questionIndex = sortedResponses.findIndex(
-      (response) => response.question === activeQuestion,
-    );
-    if (questionIndex === -1) {
-      return;
-    }
-    const targetPage = Math.floor(questionIndex / PAGE_SIZE);
-    if (targetPage !== pageIndex) {
-      setPageIndex(targetPage);
-    }
-  }, [activeQuestion, pageIndex, sortedResponses]);
+    if (sortedResponses.length > 0 && !showIssuesOnly) {
+      const firstIssueIndex = sortedResponses.findIndex((r) =>
+        issues.has(r.question)
+      );
 
-  useEffect(() => {
-    if (!activeQuestion) return;
-
-    const handler = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-        return;
+      if (firstIssueIndex !== -1) {
+        // Wait for next frame to ensure DOM is ready
+        requestAnimationFrame(() => {
+          virtualizer.scrollToIndex(firstIssueIndex, {
+            align: "center",
+            behavior: "smooth",
+          });
+        });
       }
+    }
+  }, [sortedResponses, issues, showIssuesOnly, virtualizer]);
 
-      // Navegação entre issues com Tab/Shift+Tab ou ↑/↓
-      if (event.key === "Tab" || event.key === "ArrowDown" || event.key === "ArrowUp") {
-        const issueQuestions = sortedResponses
-          .filter((r) => issues.has(r.question))
-          .map((r) => r.question);
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (isSaving) return;
 
-        if (issueQuestions.length > 1) {
-          const currentIndex = issueQuestions.indexOf(activeQuestion);
+      const target = e.target as HTMLElement;
+      const activeQuestion = target.closest("[data-question]")?.getAttribute("data-question");
 
-          if (event.key === "ArrowUp" || (event.key === "Tab" && event.shiftKey)) {
-            event.preventDefault();
-            const prevIndex = currentIndex > 0 ? currentIndex - 1 : issueQuestions.length - 1;
-            setActiveQuestion(issueQuestions[prevIndex]);
-            return;
-          }
+      if (!activeQuestion) return;
 
-          if (event.key === "ArrowDown" || event.key === "Tab") {
-            event.preventDefault();
-            const nextIndex = currentIndex < issueQuestions.length - 1 ? currentIndex + 1 : 0;
-            setActiveQuestion(issueQuestions[nextIndex]);
-            return;
-          }
-        }
-      }
-
-      // Mapear tecla para resposta (A-E, 1-5, 0)
-      const mapped = mapKeyToAnswer(event.key);
-      if (mapped) {
-        event.preventDefault();
-        onChange(activeQuestion, mapped);
+      // A-E or 1-5 to mark answer
+      if (/^[A-E]$/i.test(e.key)) {
+        e.preventDefault();
+        onChange(activeQuestion, e.key.toUpperCase());
+      } else if (/^[1-5]$/.test(e.key)) {
+        e.preventDefault();
+        const answerMap: Record<string, string> = { "1": "A", "2": "B", "3": "C", "4": "D", "5": "E" };
+        onChange(activeQuestion, answerMap[e.key]);
+      } else if (e.key === "0" || e.key === "Backspace") {
+        e.preventDefault();
+        onChange(activeQuestion, "");
       }
     };
 
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [activeQuestion, onChange, sortedResponses, issues]);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [onChange, isSaving]);
 
-  const pageCount = Math.max(1, Math.ceil(sortedResponses.length / PAGE_SIZE));
-  const pagedResponses = useMemo(
-    () =>
-      sortedResponses.slice(
-        pageIndex * PAGE_SIZE,
-        pageIndex * PAGE_SIZE + PAGE_SIZE,
-      ),
-    [pageIndex, sortedResponses],
-  );
-
-  const goToPage = (nextPage: number) => {
-    const clamped = Math.min(Math.max(nextPage, 0), pageCount - 1);
-    setPageIndex(clamped);
-    const firstQuestion = sortedResponses[clamped * PAGE_SIZE]?.question;
-    if (firstQuestion) {
-      setActiveQuestion(firstQuestion);
-    }
-  };
+  if (sortedResponses.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-center">
+        <div className="space-y-2">
+          <p className="text-muted-foreground">
+            {showIssuesOnly ? "Nenhuma issue encontrada" : "Nenhuma questão disponível"}
+          </p>
+          {showIssuesOnly && (
+            <p className="text-xs text-muted-foreground">
+              Todos os cartões estão corretos! 🎉
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-full flex-col gap-3">
-      <header className="flex items-center justify-between text-sm text-muted-foreground">
-        <p>
-          Total de questões: <span className="font-semibold text-foreground">{responses.length}</span>
-        </p>
-        <div className="flex items-center gap-3">
-          <p className="hidden text-xs sm:block">Use teclas A–E ou 1–5 para definir respostas.</p>
-          <div className="flex items-center gap-1 text-xs">
-            <button
-              type="button"
-              className="rounded-md border border-border/60 bg-background px-2 py-1 text-muted-foreground hover:border-primary/30"
-              onClick={() => goToPage(pageIndex - 1)}
-              disabled={pageIndex === 0}
-              aria-label="Página anterior de questões"
-            >
-              Anterior
-            </button>
-            <span className="text-muted-foreground">
-              {pageIndex + 1}/{pageCount}
-            </span>
-            <button
-              type="button"
-              className="rounded-md border border-border/60 bg-background px-2 py-1 text-muted-foreground hover:border-primary/30"
-              onClick={() => goToPage(pageIndex + 1)}
-              disabled={pageIndex >= pageCount - 1}
-              aria-label="Próxima página de questões"
-            >
-              Próxima
-            </button>
-          </div>
-        </div>
-      </header>
-      <div className="grid flex-1 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-border/60 bg-card p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {pagedResponses.map((response) => {
-          const question = response.question;
-          const readValue = response.read_value ?? "";
-          const currentValue = currentAnswers[question] ?? readValue ?? "";
+    <div ref={parentRef} className="h-full overflow-y-auto overscroll-contain p-4">
+      {/* Virtual container with total height */}
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {/* Render only visible items */}
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const response = sortedResponses[virtualRow.index];
+          const { question, read_value } = response;
+          const currentValue = currentAnswers[question] ?? read_value ?? "";
           const normalizedCurrent = normalizeAnswer(currentValue);
-          const normalizedBaseline = normalizeAnswer(response.corrected_value ?? readValue ?? "");
+          const normalizedBaseline = normalizeAnswer(response.corrected_value ?? read_value ?? "");
           const isDirty = normalizedCurrent !== normalizedBaseline;
-          const isActive = activeQuestion === question;
           const hasIssue = issues.has(question);
           const issueType = issuesMap.get(question);
           const issueConfig = hasIssue ? getIssueConfig(issueType) : null;
 
           return (
             <article
-              key={question}
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              data-question={question}
+              ref={virtualizer.measureElement}
               className={cn(
-                "flex flex-col gap-2 rounded-md border p-3 text-sm transition-all",
-                isActive && "ring-4 ring-primary shadow-xl scale-105",
+                "absolute top-0 left-0 w-full",
+                "flex flex-col gap-3 rounded-md border p-3 mb-3 transition-all cursor-pointer",
+                "hover:shadow-md focus-within:ring-2 focus-within:ring-primary",
+                // Issue highlighting
                 hasIssue && `border-l-4 ${issueConfig?.borderColor} ${issueConfig?.bgColor}`,
                 !hasIssue && "border-border/60 bg-muted/10"
               )}
+              style={{
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+              tabIndex={0}
             >
+              {/* Header with question number and badge */}
               <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveQuestion(question)}
+                <span
                   className={cn(
-                    "font-semibold text-left",
+                    "font-semibold text-lg",
                     hasIssue && issueConfig?.textColor,
                     !hasIssue && "text-foreground"
                   )}
                 >
                   {question}
-                </button>
+                </span>
                 <div className="flex items-center gap-2 shrink-0">
                   {isDirty && (
                     <span className="text-[11px] font-medium uppercase text-blue-600 dark:text-blue-300">
@@ -257,7 +237,8 @@ export function QuestionGrid({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
+              {/* Answer buttons */}
+              <div className="flex flex-wrap gap-2">
                 {ANSWER_OPTIONS.map((option) => {
                   const selected = normalizeAnswer(option) === normalizedCurrent;
                   return (
@@ -267,11 +248,11 @@ export function QuestionGrid({
                       disabled={isSaving}
                       onClick={() => onChange(question, option)}
                       aria-label={`Marcar resposta ${renderOptionLabel(option)} para ${question}`}
-                      className={`rounded-md border px-2 py-1 text-xs font-medium transition ${
+                      className={`rounded-md border px-3 py-2 text-sm font-medium transition min-w-[44px] ${
                         selected
-                          ? "border-primary bg-primary/10 text-primary"
+                          ? "border-primary bg-primary/10 text-primary ring-2 ring-primary ring-offset-2"
                           : "border-border/60 bg-background text-muted-foreground hover:border-primary/40"
-                      } ${option === "UNMARKED" ? "tracking-wide" : ""}`}
+                      }`}
                     >
                       {renderOptionLabel(option)}
                     </button>
@@ -279,8 +260,8 @@ export function QuestionGrid({
                 })}
               </div>
 
-              <p className="text-[11px] text-muted-foreground">
-                Lido: {readValue || "∅"} • Atual: {normalizedCurrent === "UNMARKED" ? "∅" : normalizedCurrent}
+              <p className="text-xs text-muted-foreground">
+                Lido: {read_value || "∅"} • Atual: {normalizedCurrent === "UNMARKED" ? "∅" : normalizedCurrent}
               </p>
             </article>
           );
@@ -297,16 +278,5 @@ function parseQuestionIndex(question: string) {
 }
 
 function renderOptionLabel(option: string) {
-  return option === "UNMARKED" ? "∅" : option;
-}
-
-function mapKeyToAnswer(key: string) {
-  const normalized = key.toLowerCase();
-  if (["1", "a"].includes(normalized)) return "A";
-  if (["2", "b"].includes(normalized)) return "B";
-  if (["3", "c"].includes(normalized)) return "C";
-  if (["4", "d"].includes(normalized)) return "D";
-  if (["5", "e"].includes(normalized)) return "E";
-  if (["0", " ", "backspace", "delete"].includes(normalized)) return "UNMARKED";
-  return null;
+  return option === "UNMARKED" ? "Vazio" : option;
 }
