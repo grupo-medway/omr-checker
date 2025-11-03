@@ -297,9 +297,6 @@ def reconcile_batch(
             select(AuditItem).where(AuditItem.batch_id == batch_id)
         ).all()
 
-        if not items:
-            return None
-
         try:
             original_csv_path = _safe_resolve(
                 settings.results_dir, batch.original_results_path
@@ -312,6 +309,62 @@ def reconcile_batch(
             logger.error("results CSV not found", extra={"path": str(original_csv_path)})
             return None
 
+        exports_dir = _ensure_dir(settings.exports_dir / batch_id)
+        corrected_path = exports_dir / "Results_Corrigidos.csv"
+        manifest_path = exports_dir / "results_manifest.json"
+        generated_at = datetime.now(timezone.utc)
+
+        # Se não há itens de auditoria, copiar CSV original sem modificações
+        if not items:
+            shutil.copy2(original_csv_path, corrected_path)
+            
+            manifest_data = {
+                "batch_id": batch.batch_id,
+                "template": batch.template,
+                "generated_at": generated_at.isoformat(),
+                "exported_by": exported_by,
+                "has_corrections": False,
+                "files": {
+                    "original": batch.original_results_path,
+                    "corrected": corrected_path.relative_to(settings.exports_dir).as_posix(),
+                },
+                "hashes": {
+                    "original": _hash_file(original_csv_path),
+                    "corrected": _hash_file(corrected_path),
+                },
+                "summary": {
+                    "total": 0,
+                    "pending": 0,
+                    "resolved": 0,
+                    "reopened": 0,
+                },
+                "items": [],
+            }
+
+            with open(manifest_path, "w", encoding="utf-8") as handle:
+                json.dump(manifest_data, handle, ensure_ascii=False, indent=2)
+
+            corrected_rel = corrected_path.relative_to(settings.exports_dir).as_posix()
+            manifest_rel = manifest_path.relative_to(settings.exports_dir).as_posix()
+
+            batch.corrected_results_path = corrected_rel
+            batch.manifest_path = manifest_rel
+            batch.status = BatchStatus.EXPORTED
+            batch.exported_at = generated_at
+            batch.exported_by = exported_by
+
+            session.add(batch)
+            session.commit()
+            session.refresh(batch)
+
+            return ReconciliationResult(
+                batch=batch,
+                corrected_csv=corrected_path,
+                manifest_path=manifest_path,
+                hashes=manifest_data["hashes"],
+            )
+
+        # Processar correções quando há itens de auditoria
         with open(original_csv_path, "r", encoding="utf-8", newline="") as handle:
             reader = csv.DictReader(handle)
             fieldnames = reader.fieldnames or []
@@ -342,16 +395,10 @@ def reconcile_batch(
                 if question in row:
                     row[question] = value
 
-        exports_dir = _ensure_dir(settings.exports_dir / batch_id)
-        corrected_path = exports_dir / "Results_Corrigidos.csv"
-
         with open(corrected_path, "w", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(rows)
-
-        manifest_path = exports_dir / "results_manifest.json"
-        generated_at = datetime.now(timezone.utc)
 
         summary_counts = {
             "total": len(items),

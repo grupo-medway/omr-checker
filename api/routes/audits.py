@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import secrets
 from datetime import datetime
@@ -358,5 +359,19 @@ def submit_decision(
 
     for response in item.responses:
         session.refresh(response)
+
+    # Salvar automaticamente o CSV corrigido após finalizar correção
+    if batch:
+        try:
+            # Gerar CSV corrigido automaticamente na pasta storage
+            # exported_by=None pois não temos acesso ao header de usuário aqui
+            reconcile_batch(session, settings, batch_id=batch.batch_id, exported_by=None)
+        except Exception as exc:
+            # Log do erro mas não falha a requisição principal
+            logger = logging.getLogger("api.routes.audits")
+            logger.warning(
+                f"Falha ao salvar automaticamente CSV corrigido para batch {batch.batch_id}",
+                exc_info=exc,
+            )
 
     return _to_detail(item)
