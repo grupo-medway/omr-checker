@@ -7,6 +7,9 @@
 inputs/*
 outputs/*
 
+# Storage directory (auditoria database and files)
+storage/
+
 # Misc
 **/.DS_Store
 **/__pycache__

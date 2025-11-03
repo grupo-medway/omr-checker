@@ -13,6 +13,8 @@ import {
 import "@/config/globals.css";
 import { ThemeProvider } from "@/config/theme-provider";
 import { ThemeScript } from "@/config/theme-script";
+import { AppProviders } from "@/components/providers";
+import { AuditCredentialsProvider } from "@/components/audit-credentials-provider";
 
 export const metadata = constructMetadata();
 export { viewport };
@@ -31,9 +33,13 @@ export default function RootLayout({
       </head>
       <body className={`${baseClasses} antialiased font-sans`}>
         <ThemeProvider>
-          <div className="fixed inset-0">
-            <div className="relative h-full overflow-auto">{children}</div>
-          </div>
+          <AuditCredentialsProvider>
+            <AppProviders>
+              <div className="fixed inset-0">
+                <div className="relative h-full overflow-auto">{children}</div>
+              </div>
+            </AppProviders>
+          </AuditCredentialsProvider>
         </ThemeProvider>
       </body>
     </html>
