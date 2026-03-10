@@ -1,53 +1,67 @@
-from dataclasses import dataclass
 import os
+import platform
+from dataclasses import dataclass
+from typing import Optional
 
 import cv2
 
 from src.logger import logger
 from src.utils.image import ImageUtils
 
-# Check if running in headless environment
-# More robust detection for macOS and other systems
-def detect_headless():
-    # Allow forcing GUI mode via environment variable
-    if os.environ.get('FORCE_GUI', '').lower() in ['true', '1', 'yes']:
+
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def detect_headless() -> bool:
+    if _env_flag("FORCE_GUI"):
         return False
-    
-    # Check for explicit headless indicators
-    if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('CI'):
+
+    if _env_flag("OMR_HEADLESS"):
         return True
-    
-    # For macOS and Linux with GUI, try to detect display capability
-    try:
-        import platform
-        if platform.system() == 'Darwin':  # macOS
-            # On macOS, OpenCV can usually show windows even without DISPLAY
-            return False
-        elif os.environ.get('DISPLAY') is None:
-            # On Linux, DISPLAY is more reliable
-            return True
-        else:
-            return False
-    except Exception:
+
+    if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("CI"):
         return True
+
+    if platform.system() == "Linux" and os.environ.get("DISPLAY") is None:
+        return True
+
+    return False
+
 
 IS_HEADLESS = detect_headless()
+_MONITOR_WINDOW = None
+_MONITOR_LOOKUP_ATTEMPTED = False
 
-if not IS_HEADLESS:
+
+def get_monitor_window() -> Optional[object]:
+    global _MONITOR_WINDOW, _MONITOR_LOOKUP_ATTEMPTED
+
+    if IS_HEADLESS:
+        return None
+
+    if _MONITOR_LOOKUP_ATTEMPTED:
+        return _MONITOR_WINDOW
+
+    _MONITOR_LOOKUP_ATTEMPTED = True
     try:
         from screeninfo import get_monitors
-        monitor_window = get_monitors()[0]
-    except Exception:
-        # Fallback for environments without display
-        IS_HEADLESS = True
-        monitor_window = None
-else:
-    monitor_window = None
+
+        monitors = get_monitors()
+        _MONITOR_WINDOW = monitors[0] if monitors else None
+    except Exception as exc:
+        logger.warning(
+            f"Monitor detection unavailable, falling back to headless mode: {exc}"
+        )
+        _MONITOR_WINDOW = None
+
+    return _MONITOR_WINDOW
 
 
 @dataclass
 class ImageMetrics:
     # TODO: Move TEXT_SIZE, etc here and find a better class name
+    monitor_window = get_monitor_window()
     if monitor_window:
         window_width, window_height = monitor_window.width, monitor_window.height
     else:
@@ -66,6 +80,7 @@ class InteractionUtils:
     @staticmethod
     def show(name, origin, pause=1, resize=False, reset_pos=None, config=None):
         # Skip display in headless environment
+        monitor_window = get_monitor_window()
         if IS_HEADLESS or monitor_window is None:
             return
             
@@ -136,7 +151,7 @@ class Stats:
 
 def wait_q():
     # Skip wait in headless environment
-    if IS_HEADLESS or monitor_window is None:
+    if IS_HEADLESS or get_monitor_window() is None:
         return
         
     esc_key = 27
@@ -148,7 +163,7 @@ def wait_q():
 def is_window_available(name: str) -> bool:
     """Checks if a window is available"""
     # Always return False in headless environment
-    if IS_HEADLESS or monitor_window is None:
+    if IS_HEADLESS or get_monitor_window() is None:
         return False
         
     try:

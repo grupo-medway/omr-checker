@@ -1,0 +1,13 @@
+{
+  "id": "somos-1",
+  "name": "Somos Dia 1",
+  "school": "Somos",
+  "card_brand_or_model": "OMR paper card",
+  "application_label": "dia_1",
+  "question_count": 90,
+  "areas": ["LINGUAGENS", "HUMANAS", "NATUREZA", "MATEMATICA"],
+  "student_identifier_schema": "none",
+  "language_schema": "enem_language_choice",
+  "version": "1.0.0",
+  "is_active": true
+}
