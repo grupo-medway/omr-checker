@@ -49,6 +49,17 @@ class JobStore:
     def get_document_path(self, job_id: str) -> Path:
         return self.get_job_path(job_id) / "job.json"
 
+    def delete_job(self, job_id: str):
+        job_path = self.get_job_path(job_id)
+        try:
+            resolved = job_path.resolve(strict=False)
+            root_resolved = self.root_dir.resolve(strict=False)
+        except FileNotFoundError:
+            return
+        if resolved == root_resolved or root_resolved not in resolved.parents:
+            return
+        shutil.rmtree(resolved, ignore_errors=True)
+
     def save_job(self, job_id: str, job_document: dict):
         document_path = self.get_document_path(job_id)
         document_path.write_text(json.dumps(job_document, indent=2, sort_keys=True), encoding="utf-8")

@@ -70,8 +70,10 @@ class OMRProcessor:
                 max_uncompressed_bytes=self.settings.max_uncompressed_bytes,
             )
         except (ValueError, zipfile.BadZipFile) as exc:
+            self.job_store.delete_job(job_id)
             raise OMRProcessingError(str(exc))
         if not image_files:
+            self.job_store.delete_job(job_id)
             raise OMRProcessingError("Nenhuma imagem válida encontrada no ZIP")
 
         success, message = FileHandler.copy_template_files(
@@ -79,6 +81,7 @@ class OMRProcessor:
             str(workspace),
         )
         if not success:
+            self.job_store.delete_job(job_id)
             raise OMRProcessingError(message)
 
         output_dir = workspace / "outputs"

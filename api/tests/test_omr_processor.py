@@ -273,3 +273,71 @@ def test_normalized_result_keeps_legacy_data_only_for_results_rows(tmp_path):
         "q2": "B",
     }
     assert error_sheet["legacy_data"] is None
+
+
+def test_create_job_cleans_up_workspace_on_invalid_zip(tmp_path):
+    registry_root = tmp_path / "templates"
+    template_dir = registry_root / "unit-template"
+    template_dir.mkdir(parents=True)
+
+    _write_json(
+        template_dir / "template.json",
+        {
+            "pageDimensions": [300, 400],
+            "bubbleDimensions": [10, 10],
+            "preProcessors": [],
+            "fieldBlocks": {
+                "answers": {
+                    "fieldType": "QTYPE_MCQ5",
+                    "origin": [100, 10],
+                    "bubblesGap": 5,
+                    "labelsGap": 10,
+                    "fieldLabels": ["q1..2"],
+                },
+            },
+        },
+    )
+    _write_json(template_dir / "config.json", {})
+    _write_json(
+        template_dir / "manifest.json",
+        {
+            "id": "unit-template",
+            "name": "Unit Template",
+            "school": "Test",
+            "card_brand_or_model": "Paper",
+            "application_label": "unit",
+            "question_count": 2,
+            "areas": ["TEST"],
+            "student_identifier_schema": "none",
+            "language_schema": "none",
+            "version": "1.0.0",
+            "is_active": True,
+        },
+    )
+
+    settings = Settings(
+        api_token="",
+        jobs_root=tmp_path / "jobs",
+        jobs_ttl_seconds=3600,
+        max_upload_bytes=1024 * 1024,
+        max_uncompressed_bytes=4 * 1024 * 1024,
+        max_images_per_job=10,
+        allowed_extensions=(".png", ".jpg", ".jpeg"),
+    )
+    processor = OMRProcessor(
+        registry=TemplateRegistry(registry_root),
+        job_store=JobStore(settings.jobs_root, settings.jobs_ttl_seconds),
+        settings=settings,
+    )
+
+    try:
+        processor.create_job(
+            upload_filename="upload.zip",
+            zip_content=b"not-a-real-zip",
+            template_id="unit-template",
+            source_type="generic",
+        )
+    except Exception:
+        pass
+
+    assert list(settings.jobs_root.iterdir()) == []
