@@ -67,6 +67,7 @@ class OMRProcessor:
                 allowed_extensions=self.settings.allowed_extensions,
                 max_files=self.settings.max_images_per_job,
                 max_upload_bytes=self.settings.max_upload_bytes,
+                max_uncompressed_bytes=self.settings.max_uncompressed_bytes,
             )
         except (ValueError, zipfile.BadZipFile) as exc:
             raise OMRProcessingError(str(exc))
@@ -171,37 +172,35 @@ class OMRProcessor:
     def to_legacy_response(self, job_document: dict) -> ProcessResponse:
         results = []
         for sheet in job_document["sheets"]:
+            legacy_data = sheet.get("legacy_data")
+            if legacy_data is None:
+                continue
+
             artifact_path = sheet.get("annotated_image_path")
             processed_image = ""
             if artifact_path and Path(artifact_path).exists():
                 processed_image = FileHandler.image_to_base64(Path(artifact_path))
 
-            data = dict(sheet["answers_raw"])
-            raw_identifier = sheet["student_identifier"]["raw"]
-            if raw_identifier:
-                data["matricula"] = raw_identifier
-            if sheet["language"]:
-                data["lingua"] = sheet["language"]
-
             results.append(
                 OMRResult(
                     filename=sheet["filename"],
-                    data=data,
+                    data=legacy_data,
                     processed_image=processed_image,
-                    warnings=sheet["flags"],
+                    warnings=[],
                 )
             )
 
-        summary = job_document["summary"]
+        total = job_document["summary"]["total"]
+        processed = len(results)
         return ProcessResponse(
-            status="success" if job_document["status"] == "completed" else "error",
+            status="error" if job_document["status"] == "failed" else "success",
             results=results,
             summary={
-                "total": summary["total"],
-                "processed": summary["processed"],
-                "errors": summary["failed"],
+                "total": total,
+                "processed": processed,
+                "errors": total - processed,
             },
-            errors=job_document["errors"] or None,
+            errors=job_document["errors"] or None if job_document["status"] == "failed" else None,
         )
 
     def _collect_sheet_results(
@@ -271,6 +270,7 @@ class OMRProcessor:
             "flags": [flag],
             "annotated_image_url": None,
             "annotated_image_path": None,
+            "legacy_data": None,
         }
 
     def _read_output_rows(self, output_dir: Path) -> Dict[str, dict]:
@@ -365,6 +365,14 @@ class OMRProcessor:
             "flags": flags,
             "annotated_image_url": annotated_url,
             "annotated_image_path": str(artifact_path) if artifact_path else None,
+            "legacy_data": self._build_legacy_data(row) if kind == "results" else None,
+        }
+
+    def _build_legacy_data(self, row: dict) -> Dict[str, str]:
+        return {
+            key: value
+            for key, value in row.items()
+            if key.startswith("matricula") or key.startswith("lingua") or key.startswith("q")
         }
 
     def _extract_answers(self, row: dict) -> Dict[str, str]:

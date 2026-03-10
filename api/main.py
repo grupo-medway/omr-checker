@@ -111,13 +111,22 @@ async def get_annotated_artifact(
     return FileResponse(artifact_path)
 
 
-@app.get("/api/templates", deprecated=True)
+@app.get(
+    "/api/templates",
+    deprecated=True,
+    dependencies=[Depends(require_v1_auth)],
+)
 async def list_templates(processor: OMRProcessor = Depends(get_processor)):
     manifests = processor.list_templates()
     return {"templates": [manifest.id for manifest in manifests]}
 
 
-@app.post("/api/process-omr", response_model=ProcessResponse, deprecated=True)
+@app.post(
+    "/api/process-omr",
+    response_model=ProcessResponse,
+    deprecated=True,
+    dependencies=[Depends(require_v1_auth)],
+)
 async def process_omr(
     file: UploadFile = File(..., description="Arquivo ZIP com as imagens dos gabaritos"),
     template: str = Form(..., description="Nome do template a ser usado"),

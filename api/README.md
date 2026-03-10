@@ -15,6 +15,7 @@ uvicorn api.main:app --reload
 - `OMR_JOB_STORAGE_DIR`: diretorio base dos jobs temporarios
 - `OMR_JOB_TTL_SECONDS`: TTL dos jobs persistidos em disco
 - `OMR_MAX_UPLOAD_BYTES`: tamanho maximo do ZIP
+- `OMR_MAX_UNCOMPRESSED_BYTES`: limite total descompactado aceito do ZIP
 - `OMR_MAX_IMAGES_PER_JOB`: quantidade maxima de imagens por job
 
 ## Endpoints v1
@@ -53,7 +54,7 @@ Serve a imagem anotada da folha quando o artefato existe.
 
 ## Autenticacao
 
-Todos os endpoints `/v1/**` usam `Authorization: Bearer <token>` quando `OMR_API_TOKEN` estiver definido.
+Todos os endpoints `/v1/**` e os wrappers legados em `/api/*` usam `Authorization: Bearer <token>` quando `OMR_API_TOKEN` estiver definido.
 
 ## Payload por folha
 
@@ -98,4 +99,4 @@ Os endpoints antigos continuam disponiveis por uma iteracao:
 - `GET /api/templates`
 - `POST /api/process-omr`
 
-Eles funcionam como wrappers sobre a nova camada de jobs.
+Eles funcionam como wrappers sobre a nova camada de jobs, mantendo o formato legado de resposta.

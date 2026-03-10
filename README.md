@@ -43,7 +43,7 @@ Fluxo base:
 3. consultar resultado em `GET /v1/omr-jobs/{job_id}`
 4. baixar artefato anotado em `GET /v1/omr-jobs/{job_id}/sheets/{sheet_id}/artifacts/annotated`
 
-Por padrao, todos os endpoints `/v1/**` usam bearer token quando `OMR_API_TOKEN` estiver configurado.
+Por padrao, todos os endpoints `/v1/**` e os wrappers legados em `/api/*` usam bearer token quando `OMR_API_TOKEN` estiver configurado.
 
 Os templates produtivos ficam em `samples/` e exigem `manifest.json` alem de `template.json` e `config.json`.
 
@@ -125,4 +125,4 @@ python3 main.py -i ./minhas-imagens -o ./meus-resultados
 
 ---
 
-Consulte [api/README.md](/Users/matheuscartaxo/Desktop/omr-checker/api/README.md) para o contrato HTTP atual e as variaveis de ambiente do servico.
+Consulte [api/README.md](./api/README.md) para o contrato HTTP atual e as variaveis de ambiente do servico.

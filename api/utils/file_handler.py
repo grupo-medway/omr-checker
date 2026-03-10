@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Iterable, List, Tuple
 
 
+RESERVED_IMAGE_FILENAMES = {"omr_marker.jpg", "template_reference.jpg"}
+
+
 class FileHandler:
     @staticmethod
     def extract_zip(
@@ -15,6 +18,7 @@ class FileHandler:
         allowed_extensions: Iterable[str],
         max_files: int,
         max_upload_bytes: int,
+        max_uncompressed_bytes: int,
     ) -> List[Path]:
         """
         Extrai arquivos ZIP com segurança e retorna lista de imagens encontradas
@@ -34,17 +38,34 @@ class FileHandler:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             # Validar arquivos antes de extrair
             extracted_images = 0
+            total_uncompressed_bytes = 0
+            extracted_filenames = set()
             for file_info in zip_ref.filelist:
+                member_path = Path(file_info.filename)
                 # Prevenir path traversal
-                if ".." in file_info.filename or file_info.filename.startswith("/"):
+                if member_path.is_absolute() or ".." in member_path.parts:
                     raise ValueError(f"Arquivo suspeito no ZIP: {file_info.filename}")
                 if not file_info.is_dir():
-                    suffix = Path(file_info.filename).suffix.lower()
+                    suffix = member_path.suffix.lower()
                     if suffix in normalized_extensions:
+                        filename = member_path.name
+                        lowered_filename = filename.lower()
+                        if lowered_filename in extracted_filenames:
+                            raise ValueError(f"ZIP contains duplicate image filename: {filename}")
+                        if lowered_filename in RESERVED_IMAGE_FILENAMES:
+                            raise ValueError(
+                                f"ZIP entry conflicts with reserved template asset: {filename}"
+                            )
+                        extracted_filenames.add(lowered_filename)
                         extracted_images += 1
+                        total_uncompressed_bytes += file_info.file_size
 
             if extracted_images > max_files:
                 raise ValueError(f"ZIP contains too many images (limit: {max_files})")
+            if total_uncompressed_bytes > max_uncompressed_bytes:
+                raise ValueError(
+                    "ZIP exceeds the maximum allowed uncompressed size"
+                )
             
             # Extrair apenas arquivos de imagem, ignorando estrutura de diretórios
             for file_info in zip_ref.filelist:
@@ -54,7 +75,7 @@ class FileHandler:
                     if filename and Path(filename).suffix.lower() in normalized_extensions:
                         # Extrair diretamente no extract_to
                         with zip_ref.open(file_info) as source, open(os.path.join(extract_to, filename), "wb") as target:
-                            target.write(source.read())
+                            shutil.copyfileobj(source, target, length=1024 * 1024)
         
         # Encontrar imagens válidas no diretório de extração
         image_files = []

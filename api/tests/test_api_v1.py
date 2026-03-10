@@ -49,6 +49,7 @@ def _build_test_processor(tmp_path: Path) -> OMRProcessor:
         jobs_root=tmp_path / "jobs",
         jobs_ttl_seconds=3600,
         max_upload_bytes=5 * 1024 * 1024,
+        max_uncompressed_bytes=20 * 1024 * 1024,
         max_images_per_job=10,
         allowed_extensions=(".png", ".jpg", ".jpeg"),
     )
@@ -126,6 +127,31 @@ def test_v1_requires_auth(monkeypatch, tmp_path):
     response = client.get("/v1/templates")
     assert response.status_code == 401
 
+    app.dependency_overrides.clear()
+
+
+def test_legacy_routes_require_auth(monkeypatch, tmp_path):
+    monkeypatch.setenv("OMR_API_TOKEN", "test-token")
+    monkeypatch.setenv("OMR_HEADLESS", "1")
+
+    processor = _build_test_processor(tmp_path)
+    app.dependency_overrides[get_processor] = lambda: processor
+    client = TestClient(app)
+
+    templates_response = client.get("/api/templates")
+    assert templates_response.status_code == 401
+
+    image_path = Path("src/tests/test_samples/sample2/sample.jpg")
+    zip_path = tmp_path / "upload.zip"
+    _build_zip(zip_path, image_path)
+    with open(zip_path, "rb") as file:
+        process_response = client.post(
+            "/api/process-omr",
+            data={"template": "sample2-template"},
+            files={"file": ("upload.zip", file, "application/zip")},
+        )
+
+    assert process_response.status_code == 401
     app.dependency_overrides.clear()
 
 
