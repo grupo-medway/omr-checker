@@ -1,0 +1,13 @@
+{
+  "id": "simples-90",
+  "name": "Modelo Simples 90",
+  "school": "Generic",
+  "card_brand_or_model": "OMR paper card",
+  "application_label": "simples_90",
+  "question_count": 90,
+  "areas": ["LINGUAGENS", "HUMANAS", "NATUREZA", "MATEMATICA"],
+  "student_identifier_schema": "ra_bubbles",
+  "language_schema": "enem_language_choice",
+  "version": "1.0.0",
+  "is_active": true
+}

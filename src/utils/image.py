@@ -6,6 +6,15 @@
  Github: https://github.com/Udayraj123
 
 """
+import os
+import tempfile
+
+mpl_config_dir = os.environ.setdefault(
+    "MPLCONFIGDIR",
+    os.path.join(tempfile.gettempdir(), "omr-checker-matplotlib"),
+)
+os.makedirs(mpl_config_dir, exist_ok=True)
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np

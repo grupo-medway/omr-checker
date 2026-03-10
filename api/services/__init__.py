@@ -1,3 +1,3 @@
-from .omr_processor import OMRProcessor
+from .omr_processor import OMRProcessingError, OMRProcessor
 
-__all__ = ['OMRProcessor']
+__all__ = ["OMRProcessor", "OMRProcessingError"]

@@ -1,0 +1,13 @@
+{
+  "id": "newway-nivelamento-1",
+  "name": "NewWay Nivelamento 1",
+  "school": "NewWay",
+  "card_brand_or_model": "OMR paper card",
+  "application_label": "nivelamento_1",
+  "question_count": 45,
+  "areas": ["LINGUAGENS", "MATEMATICA"],
+  "student_identifier_schema": "ra_bubbles",
+  "language_schema": "enem_language_choice",
+  "version": "1.0.0",
+  "is_active": true
+}

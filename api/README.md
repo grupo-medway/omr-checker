@@ -1,137 +1,102 @@
 # OMRChecker API
 
-API REST para processamento de gabaritos OMR (Optical Mark Recognition).
+API REST para processamento de cartoes OMR com contrato de jobs em `/v1`.
 
-## Instalação
-
-1. Instale as dependências:
-```bash
-pip install fastapi uvicorn python-multipart
-```
-
-## Executando a API
+## Executando
 
 ```bash
-# Da raiz do projeto OMRChecker
 uvicorn api.main:app --reload
 ```
 
-A API estará disponível em http://localhost:8000
+## Variaveis de ambiente
 
-## Documentação Interativa
+- `OMR_API_TOKEN`: bearer token usado nos endpoints `/v1/**`
+- `OMR_HEADLESS=1`: forca execucao sem GUI
+- `OMR_JOB_STORAGE_DIR`: diretorio base dos jobs temporarios
+- `OMR_JOB_TTL_SECONDS`: TTL dos jobs persistidos em disco
+- `OMR_MAX_UPLOAD_BYTES`: tamanho maximo do ZIP
+- `OMR_MAX_UNCOMPRESSED_BYTES`: limite total descompactado aceito do ZIP
+- `OMR_MAX_IMAGES_PER_JOB`: quantidade maxima de imagens por job
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+## Endpoints v1
 
-## Endpoints
+### `GET /healthz`
 
-### 1. Listar Templates Disponíveis
+Health check sem autenticacao.
 
-```bash
-GET /api/templates
-```
+### `GET /v1/templates`
 
-Retorna lista de templates disponíveis no diretório `samples/`.
+Lista templates tecnicos registrados em `samples/*/manifest.json`.
 
-### 2. Processar Gabaritos
+### `GET /v1/templates/{template_id}`
 
-```bash
-POST /api/process-omr
-```
+Retorna os metadados de um template especifico.
 
-**Parâmetros:**
-- `file`: Arquivo ZIP contendo as imagens dos gabaritos (PNG/JPG)
-- `template`: Nome do template a ser usado
+### `POST /v1/omr-jobs`
 
-**Resposta:**
-```json
-{
-  "status": "success",
-  "results": [
-    {
-      "filename": "gabarito_001.jpg",
-      "data": {
-        "matricula1": "1",
-        "matricula2": "2",
-        "matricula3": "3",
-        "matricula4": "4",
-        "matricula5": "5",
-        "lingua1": "ING",
-        "q1": "A",
-        "q2": "B",
-        "q3": "C"
-      },
-      "processed_image": "base64...",
-      "warnings": []
-    }
-  ],
-  "summary": {
-    "total": 10,
-    "processed": 10,
-    "errors": 0
-  }
-}
-```
+Abre e processa um job OMR de forma sincrona, mas com payload em formato de job.
 
-## Exemplo de Uso
+Campos `multipart/form-data`:
 
-### Python
-```python
-import requests
+- `file`: ZIP com imagens `.png`, `.jpg` ou `.jpeg`
+- `template_id`: ID tecnico do template
+- `source_type`: tipo do fluxo chamador
+- `source_id`: opcional
+- `metadata`: JSON opcional em string
 
-# Listar templates
-response = requests.get("http://localhost:8000/api/templates")
-templates = response.json()["templates"]
+### `GET /v1/omr-jobs/{job_id}`
 
-# Processar gabaritos
-with open("gabaritos.zip", "rb") as f:
-    files = {"file": ("gabaritos.zip", f, "application/zip")}
-    data = {"template": "medway"}
-    
-    response = requests.post(
-        "http://localhost:8000/api/process-omr",
-        files=files,
-        data=data
-    )
-    
-    result = response.json()
-```
+Retorna o resultado bruto normalizado por folha.
 
-### cURL
-```bash
-# Listar templates
-curl http://localhost:8000/api/templates
+### `GET /v1/omr-jobs/{job_id}/sheets/{sheet_id}/artifacts/annotated`
 
-# Processar gabaritos
-curl -X POST http://localhost:8000/api/process-omr \
-  -F "file=@gabaritos.zip" \
-  -F "template=medway"
-```
+Serve a imagem anotada da folha quando o artefato existe.
 
-## Script de Teste
+## Autenticacao
 
-Execute o script de teste fornecido:
+Todos os endpoints `/v1/**` e os wrappers legados em `/api/*` usam `Authorization: Bearer <token>` quando `OMR_API_TOKEN` estiver definido.
 
-```bash
-python test_api.py
-```
+## Payload por folha
 
-## Estrutura do Projeto
+Cada folha retorna:
 
-```
-api/
-├── __init__.py
-├── main.py              # Endpoints da API
-├── models.py            # Modelos de dados
-├── services/
-│   └── omr_processor.py # Lógica de processamento
-└── utils/
-    └── file_handler.py  # Manipulação de arquivos
-```
+- `status`: `processed | needs_review | failed`
+- `student_identifier`
+- `language`
+- `answers_raw`
+- `flags`
+- `confidence_summary`
+- `review_artifacts.annotated_image_url`
 
-## Notas de Segurança
+Flags suportadas hoje:
 
-- A API valida o conteúdo do ZIP para prevenir path traversal
-- Limita tipos de arquivo aceitos (apenas imagens)
-- Remove arquivos temporários após processamento
-- Recomenda-se adicionar autenticação em produção
+- `multi_mark_qN`
+- `missing_identifier`
+- `partial_identifier`
+- `missing_language`
+- `processing_error`
+
+## Templates
+
+Cada template produtivo precisa de:
+
+- `manifest.json`
+- `template.json`
+- `config.json`
+- arquivos auxiliares do pre-processor, quando existirem
+
+O manifesto valida:
+
+- identidade publica (`id`, `name`, `version`, `is_active`)
+- contagem de questoes
+- presenca/ausencia de identificador do aluno
+- presenca/ausencia de campo de lingua
+
+## Compatibilidade legada
+
+Os endpoints antigos continuam disponiveis por uma iteracao:
+
+- `GET /api/templates`
+- `POST /api/process-omr`
+
+Eles funcionam como wrappers sobre a nova camada de jobs, mantendo o formato legado de resposta.
