@@ -5,7 +5,7 @@
     {
       "name": "FeatureBasedAlignment",
       "options": {
-        "reference": "template_reference.jpg",
+        "reference": "template_reference.png",
         "2d": true,
         "maxFeatures": 1000,
         "goodMatchPercent": 0.15
@@ -46,7 +46,7 @@
       "bubbleDimensions": [25, 26],
       "bubblesGap": 27,
       "labelsGap": 27.5,
-      "origin": [215, 1032]
+      "origin": [323, 1032]
     },
     "Bloco2": {
       "fieldType": "QTYPE_MCQ5",
@@ -55,7 +55,7 @@
       "bubbleDimensions": [25, 26],
       "bubblesGap": 27,
       "labelsGap": 27.5,
-      "origin": [400, 1032]
+      "origin": [509, 1032]
     },
     "Bloco3": {
       "fieldType": "QTYPE_MCQ5",
@@ -64,16 +64,7 @@
       "bubbleDimensions": [25, 26],
       "bubblesGap": 27,
       "labelsGap": 27.5,
-      "origin": [590, 1032]
-    },
-    "Bloco4": {
-      "fieldType": "QTYPE_MCQ5",
-      "fieldLabels": ["q46..60"],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubbleDimensions": [25, 26],
-      "bubblesGap": 27,
-      "labelsGap": 27.5,
-      "origin": [775, 1032]
+      "origin": [697, 1032]
     }
   }
 }

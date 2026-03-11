@@ -5,7 +5,7 @@
     {
       "name": "FeatureBasedAlignment",
       "options": {
-        "reference": "template_reference.jpg",
+        "reference": "template_reference.png",
         "2d": true,
         "maxFeatures": 1000,
         "goodMatchPercent": 0.15
@@ -43,28 +43,55 @@
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": ["q1..15"],
       "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubbleDimensions": [25, 26],
+      "bubbleDimensions": [26, 26],
       "bubblesGap": 27,
-      "labelsGap": 27.5,
-      "origin": [323, 1032]
+      "labelsGap": 27,
+      "origin": [58, 1040]
     },
     "Bloco2": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": ["q16..30"],
       "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubbleDimensions": [25, 26],
+      "bubbleDimensions": [26, 26],
       "bubblesGap": 27,
-      "labelsGap": 27.5,
-      "origin": [509, 1032]
+      "labelsGap": 27,
+      "origin": [238, 1040]
     },
     "Bloco3": {
       "fieldType": "QTYPE_MCQ5",
       "fieldLabels": ["q31..45"],
       "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubbleDimensions": [25, 26],
+      "bubbleDimensions": [26, 26],
       "bubblesGap": 27,
-      "labelsGap": 27.5,
-      "origin": [697, 1032]
+      "labelsGap": 27,
+      "origin": [420, 1040]
+    },
+    "Bloco4": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": ["q46..60"],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubbleDimensions": [26, 26],
+      "bubblesGap": 27,
+      "labelsGap": 27,
+      "origin": [600, 1040]
+    },
+    "Bloco5": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": ["q61..75"],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubbleDimensions": [26, 26],
+      "bubblesGap": 27,
+      "labelsGap": 27,
+      "origin": [782, 1040]
+    },
+    "Bloco6": {
+      "fieldType": "QTYPE_MCQ5",
+      "fieldLabels": ["q76..90"],
+      "bubbleValues": ["A", "B", "C", "D", "E"],
+      "bubbleDimensions": [26, 26],
+      "bubblesGap": 27,
+      "labelsGap": 27,
+      "origin": [962, 1040]
     }
   }
 }

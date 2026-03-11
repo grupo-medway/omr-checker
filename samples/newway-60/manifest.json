@@ -1,9 +1,9 @@
 {
-  "id": "newway-nivelamento-2",
-  "name": "NewWay Nivelamento 2",
+  "id": "newway-60",
+  "name": "NewWay 60",
   "school": "NewWay",
   "card_brand_or_model": "OMR paper card",
-  "application_label": "nivelamento_2",
+  "application_label": "newway-60",
   "question_count": 60,
   "areas": ["LINGUAGENS", "HUMANAS", "NATUREZA", "MATEMATICA"],
   "student_identifier_schema": "ra_bubbles",
