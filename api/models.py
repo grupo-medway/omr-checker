@@ -31,6 +31,7 @@ class SheetResult(BaseModel):
     answers_raw: Dict[str, str]
     confidence_summary: ConfidenceSummary
     flags: List[str] = Field(default_factory=list)
+    attention_flags: List[str] = Field(default_factory=list)
     review_artifacts: ReviewArtifacts = Field(default_factory=ReviewArtifacts)
 
 

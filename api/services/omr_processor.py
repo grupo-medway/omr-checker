@@ -165,6 +165,7 @@ class OMRProcessor:
                     "answers_raw": sheet["answers_raw"],
                     "confidence_summary": sheet["confidence_summary"],
                     "flags": sheet["flags"],
+                    "attention_flags": sheet.get("attention_flags", []),
                     "review_artifacts": {
                         "annotated_image_url": sheet.get("annotated_image_url")
                     },
@@ -271,6 +272,7 @@ class OMRProcessor:
                 "reasons": [flag],
             },
             "flags": [flag],
+            "attention_flags": [],
             "annotated_image_url": None,
             "annotated_image_path": None,
             "legacy_data": None,
@@ -314,6 +316,10 @@ class OMRProcessor:
 
         answers_raw = self._extract_answers(row)
         flags = []
+        attention_flags = self._extract_attention_flags(
+            answers_raw,
+            empty_value=template.empty_value,
+        )
         if kind == "errors":
             flags.append("processing_error")
 
@@ -366,6 +372,7 @@ class OMRProcessor:
                 "reasons": flags,
             },
             "flags": flags,
+            "attention_flags": attention_flags,
             "annotated_image_url": annotated_url,
             "annotated_image_path": str(artifact_path) if artifact_path else None,
             "legacy_data": self._build_legacy_data(row) if kind == "results" else None,
@@ -384,6 +391,19 @@ class OMRProcessor:
             if key.startswith("q"):
                 answers[key] = row.get(key, "")
         return answers
+
+    def _extract_attention_flags(
+        self,
+        answers_raw: Dict[str, str],
+        *,
+        empty_value: str,
+    ) -> List[str]:
+        attention_flags = []
+        for question, answer in answers_raw.items():
+            normalized_answer = str(answer).strip()
+            if not normalized_answer or normalized_answer == empty_value:
+                attention_flags.append(f"blank_answer_{question}")
+        return attention_flags
 
     def _extract_identifier(self, row: dict, template: RegisteredTemplate) -> str:
         if template.identifier_field is None:

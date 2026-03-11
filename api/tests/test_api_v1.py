@@ -92,6 +92,8 @@ def test_v1_job_flow(monkeypatch, tmp_path):
     assert payload["summary"]["total"] == 1
     assert payload["sheets"][0]["filename"] == "sample.jpg"
     assert payload["sheets"][0]["review_artifacts"]["annotated_image_url"]
+    assert "attention_flags" in payload["sheets"][0]
+    assert isinstance(payload["sheets"][0]["attention_flags"], list)
 
     job_response = client.get(
         f"/v1/omr-jobs/{payload['job_id']}",
@@ -99,6 +101,7 @@ def test_v1_job_flow(monkeypatch, tmp_path):
     )
     assert job_response.status_code == 200
     assert job_response.json()["job_id"] == payload["job_id"]
+    assert isinstance(job_response.json()["sheets"][0]["attention_flags"], list)
 
     artifact_url = payload["sheets"][0]["review_artifacts"]["annotated_image_url"]
     artifact_response = client.get(

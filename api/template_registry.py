@@ -32,6 +32,7 @@ class RegisteredTemplate:
     template_dir: Path
     output_columns: List[str]
     question_columns: List[str]
+    empty_value: str
     identifier_field: Optional[str]
     identifier_length: Optional[int]
     language_field: Optional[str]
@@ -118,6 +119,7 @@ class TemplateRegistry:
             template_dir=template_dir,
             output_columns=output_columns,
             question_columns=question_columns,
+            empty_value=str(template_json.get("emptyValue", "")),
             identifier_field=identifier_field,
             identifier_length=identifier_length,
             language_field=language_field,

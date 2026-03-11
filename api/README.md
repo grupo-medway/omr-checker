@@ -65,6 +65,7 @@ Cada folha retorna:
 - `language`
 - `answers_raw`
 - `flags`
+- `attention_flags`
 - `confidence_summary`
 - `review_artifacts.annotated_image_url`
 
@@ -75,6 +76,10 @@ Flags suportadas hoje:
 - `partial_identifier`
 - `missing_language`
 - `processing_error`
+
+Attention flags suportadas hoje:
+
+- `blank_answer_qN`
 
 ## Templates
 

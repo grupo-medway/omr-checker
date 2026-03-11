@@ -275,6 +275,174 @@ def test_normalized_result_keeps_legacy_data_only_for_results_rows(tmp_path):
     assert error_sheet["legacy_data"] is None
 
 
+def test_blank_answers_create_attention_flags_without_forcing_review(tmp_path):
+    registry_root = tmp_path / "templates"
+    template_dir = registry_root / "unit-template"
+    template_dir.mkdir(parents=True)
+
+    _write_json(
+        template_dir / "template.json",
+        {
+            "pageDimensions": [300, 400],
+            "bubbleDimensions": [10, 10],
+            "preProcessors": [],
+            "fieldBlocks": {
+                "answers": {
+                    "fieldType": "QTYPE_MCQ5",
+                    "origin": [100, 10],
+                    "bubblesGap": 5,
+                    "labelsGap": 10,
+                    "fieldLabels": ["q1..3"],
+                },
+            },
+        },
+    )
+    _write_json(template_dir / "config.json", {})
+    _write_json(
+        template_dir / "manifest.json",
+        {
+            "id": "unit-template",
+            "name": "Unit Template",
+            "school": "Test",
+            "card_brand_or_model": "Paper",
+            "application_label": "unit",
+            "question_count": 3,
+            "areas": ["TEST"],
+            "student_identifier_schema": "none",
+            "language_schema": "none",
+            "version": "1.0.0",
+            "is_active": True,
+        },
+    )
+
+    settings = Settings(
+        api_token="",
+        jobs_root=tmp_path / "jobs",
+        jobs_ttl_seconds=3600,
+        max_upload_bytes=1024 * 1024,
+        max_uncompressed_bytes=4 * 1024 * 1024,
+        max_images_per_job=10,
+        allowed_extensions=(".png", ".jpg", ".jpeg"),
+    )
+    processor = OMRProcessor(
+        registry=TemplateRegistry(registry_root),
+        job_store=JobStore(settings.jobs_root, settings.jobs_ttl_seconds),
+        settings=settings,
+    )
+    template = processor.registry.get_template("unit-template")
+    workspace = tmp_path / "workspace"
+    (workspace / "outputs" / "CheckedOMRs").mkdir(parents=True)
+    (workspace / "outputs" / "CheckedOMRs" / "scan-1.png").write_bytes(b"fake-image")
+
+    sheet = processor._normalize_sheet(
+        job_id="job-1",
+        filename="scan-1.png",
+        template=template,
+        row_bundle={
+            "kind": "results",
+            "row": {
+                "file_id": "scan-1.png",
+                "input_path": "scan-1.png",
+                "output_path": str(workspace / "outputs" / "CheckedOMRs" / "scan-1.png"),
+                "score": "0",
+                "q1": "A",
+                "q2": "",
+                "q3": "C",
+            },
+        },
+        workspace=workspace,
+    )
+
+    assert sheet["status"] == "processed"
+    assert sheet["flags"] == []
+    assert sheet["attention_flags"] == ["blank_answer_q2"]
+    assert sheet["confidence_summary"]["requires_human_review"] is False
+
+
+def test_blank_answers_respect_template_empty_value_marker(tmp_path):
+    registry_root = tmp_path / "templates"
+    template_dir = registry_root / "unit-template"
+    template_dir.mkdir(parents=True)
+
+    _write_json(
+        template_dir / "template.json",
+        {
+            "pageDimensions": [300, 400],
+            "bubbleDimensions": [10, 10],
+            "preProcessors": [],
+            "emptyValue": "*",
+            "fieldBlocks": {
+                "answers": {
+                    "fieldType": "QTYPE_MCQ5",
+                    "origin": [100, 10],
+                    "bubblesGap": 5,
+                    "labelsGap": 10,
+                    "fieldLabels": ["q1..3"],
+                },
+            },
+        },
+    )
+    _write_json(template_dir / "config.json", {})
+    _write_json(
+        template_dir / "manifest.json",
+        {
+            "id": "unit-template",
+            "name": "Unit Template",
+            "school": "Test",
+            "card_brand_or_model": "Paper",
+            "application_label": "unit",
+            "question_count": 3,
+            "areas": ["TEST"],
+            "student_identifier_schema": "none",
+            "language_schema": "none",
+            "version": "1.0.0",
+            "is_active": True,
+        },
+    )
+
+    settings = Settings(
+        api_token="",
+        jobs_root=tmp_path / "jobs",
+        jobs_ttl_seconds=3600,
+        max_upload_bytes=1024 * 1024,
+        max_uncompressed_bytes=4 * 1024 * 1024,
+        max_images_per_job=10,
+        allowed_extensions=(".png", ".jpg", ".jpeg"),
+    )
+    processor = OMRProcessor(
+        registry=TemplateRegistry(registry_root),
+        job_store=JobStore(settings.jobs_root, settings.jobs_ttl_seconds),
+        settings=settings,
+    )
+    template = processor.registry.get_template("unit-template")
+    workspace = tmp_path / "workspace"
+    (workspace / "outputs" / "CheckedOMRs").mkdir(parents=True)
+    (workspace / "outputs" / "CheckedOMRs" / "scan-1.png").write_bytes(b"fake-image")
+
+    sheet = processor._normalize_sheet(
+        job_id="job-1",
+        filename="scan-1.png",
+        template=template,
+        row_bundle={
+            "kind": "results",
+            "row": {
+                "file_id": "scan-1.png",
+                "input_path": "scan-1.png",
+                "output_path": str(workspace / "outputs" / "CheckedOMRs" / "scan-1.png"),
+                "score": "0",
+                "q1": "A",
+                "q2": "*",
+                "q3": "C",
+            },
+        },
+        workspace=workspace,
+    )
+
+    assert sheet["status"] == "processed"
+    assert sheet["flags"] == []
+    assert sheet["attention_flags"] == ["blank_answer_q2"]
+
+
 def test_create_job_cleans_up_workspace_on_invalid_zip(tmp_path):
     registry_root = tmp_path / "templates"
     template_dir = registry_root / "unit-template"
