@@ -5,7 +5,7 @@
     {
       "name": "FeatureBasedAlignment",
       "options": {
-        "reference": "template_reference.png",
+        "reference": "template_reference.jpg",
         "2d": true,
         "maxFeatures": 1000,
         "goodMatchPercent": 0.15
