@@ -21,7 +21,7 @@ class Settings:
 
 
 def get_settings() -> Settings:
-    max_upload_bytes = int(os.environ.get("OMR_MAX_UPLOAD_BYTES", str(25 * 1024 * 1024)))
+    max_upload_bytes = int(os.environ.get("OMR_MAX_UPLOAD_BYTES", str(1024 * 1024 * 1024)))
     jobs_root = Path(
         os.environ.get(
             "OMR_JOB_STORAGE_DIR",

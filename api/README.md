@@ -14,7 +14,7 @@ uvicorn api.main:app --reload
 - `OMR_HEADLESS=1`: forca execucao sem GUI
 - `OMR_JOB_STORAGE_DIR`: diretorio base dos jobs temporarios
 - `OMR_JOB_TTL_SECONDS`: TTL dos jobs persistidos em disco
-- `OMR_MAX_UPLOAD_BYTES`: tamanho maximo do ZIP
+- `OMR_MAX_UPLOAD_BYTES`: tamanho maximo do ZIP (default: 1024 MB)
 - `OMR_MAX_UNCOMPRESSED_BYTES`: limite total descompactado aceito do ZIP
 - `OMR_MAX_IMAGES_PER_JOB`: quantidade maxima de imagens por job
 
