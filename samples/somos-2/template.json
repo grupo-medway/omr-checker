@@ -4,8 +4,8 @@
     1600
   ],
   "bubbleDimensions": [
-    25,
-    25
+    23,
+    23
   ],
   "preProcessors": [
     {
@@ -25,12 +25,18 @@
       "fieldLabels": [
         "q91..100"
       ],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubbleValues": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "bubblesGap": 33.42,
+      "labelsGap": 32.34,
       "origin": [
-        180,
-        605
+        119,
+        465
       ]
     },
     "Bloco2": {
@@ -38,12 +44,18 @@
       "fieldLabels": [
         "q101..110"
       ],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubbleValues": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "bubblesGap": 33.42,
+      "labelsGap": 32.27,
       "origin": [
-        180,
-        868
+        119,
+        830
       ]
     },
     "Bloco3": {
@@ -51,12 +63,18 @@
       "fieldLabels": [
         "q111..120"
       ],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubbleValues": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "bubblesGap": 33.42,
+      "labelsGap": 32.29,
       "origin": [
-        180,
-        1131
+        119,
+        1194
       ]
     },
     "Bloco4": {
@@ -64,12 +82,18 @@
       "fieldLabels": [
         "q121..130"
       ],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubbleValues": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "bubblesGap": 33.44,
+      "labelsGap": 32.34,
       "origin": [
-        492,
-        344
+        375,
+        465
       ]
     },
     "Bloco5": {
@@ -77,12 +101,18 @@
       "fieldLabels": [
         "q131..140"
       ],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubbleValues": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "bubblesGap": 33.44,
+      "labelsGap": 32.27,
       "origin": [
-        492,
-        605
+        375,
+        830
       ]
     },
     "Bloco6": {
@@ -90,12 +120,18 @@
       "fieldLabels": [
         "q141..150"
       ],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubbleValues": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "bubblesGap": 33.44,
+      "labelsGap": 32.29,
       "origin": [
-        492,
-        868
+        375,
+        1194
       ]
     },
     "Bloco7": {
@@ -103,12 +139,18 @@
       "fieldLabels": [
         "q151..160"
       ],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubbleValues": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "bubblesGap": 33.16,
+      "labelsGap": 32.34,
       "origin": [
-        492,
-        1131
+        633,
+        465
       ]
     },
     "Bloco8": {
@@ -116,12 +158,18 @@
       "fieldLabels": [
         "q161..170"
       ],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubbleValues": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "bubblesGap": 33.16,
+      "labelsGap": 32.27,
       "origin": [
-        804,
-        344
+        633,
+        830
       ]
     },
     "Bloco9": {
@@ -129,12 +177,18 @@
       "fieldLabels": [
         "q171..180"
       ],
-      "bubbleValues": ["A", "B", "C", "D", "E"],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubbleValues": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "bubblesGap": 33.16,
+      "labelsGap": 32.29,
       "origin": [
-        804,
-        605
+        633,
+        1194
       ]
     }
   }

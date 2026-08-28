@@ -4,8 +4,8 @@
     1600
   ],
   "bubbleDimensions": [
-    25,
-    25
+    23,
+    23
   ],
   "preProcessors": [
     {
@@ -21,19 +21,23 @@
   "emptyValue": "*",
   "fieldBlocks": {
     "lingua": {
-      "fieldType": "QTYPE_IDIOMA_HORIZONTAL",
+      "bubbleValues": [
+        "ESP",
+        "ING"
+      ],
+      "direction": "horizontal",
       "fieldLabels": [
         "lingua"
       ],
       "bubbleDimensions": [
-        24,
-        24
+        23,
+        23
       ],
-      "bubblesGap": 82,
+      "bubblesGap": 161.7,
       "labelsGap": 25,
       "origin": [
-        208,
-        563
+        84,
+        360
       ],
       "emptyValue": "X"
     },
@@ -49,11 +53,11 @@
         "D",
         "E"
       ],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubblesGap": 33.42,
+      "labelsGap": 32.34,
       "origin": [
-        180,
-        605
+        119,
+        465
       ]
     },
     "Bloco2": {
@@ -68,11 +72,11 @@
         "D",
         "E"
       ],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubblesGap": 33.42,
+      "labelsGap": 32.27,
       "origin": [
-        180,
-        868
+        119,
+        830
       ]
     },
     "Bloco3": {
@@ -87,11 +91,11 @@
         "D",
         "E"
       ],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubblesGap": 33.42,
+      "labelsGap": 32.29,
       "origin": [
-        180,
-        1131
+        119,
+        1194
       ]
     },
     "Bloco4": {
@@ -106,11 +110,11 @@
         "D",
         "E"
       ],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubblesGap": 33.44,
+      "labelsGap": 32.34,
       "origin": [
-        492,
-        344
+        375,
+        465
       ]
     },
     "Bloco5": {
@@ -125,11 +129,11 @@
         "D",
         "E"
       ],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubblesGap": 33.44,
+      "labelsGap": 32.27,
       "origin": [
-        492,
-        605
+        375,
+        830
       ]
     },
     "Bloco6": {
@@ -144,11 +148,11 @@
         "D",
         "E"
       ],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubblesGap": 33.44,
+      "labelsGap": 32.29,
       "origin": [
-        492,
-        868
+        375,
+        1194
       ]
     },
     "Bloco7": {
@@ -163,11 +167,11 @@
         "D",
         "E"
       ],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubblesGap": 33.16,
+      "labelsGap": 32.34,
       "origin": [
-        492,
-        1131
+        633,
+        465
       ]
     },
     "Bloco8": {
@@ -182,11 +186,11 @@
         "D",
         "E"
       ],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubblesGap": 33.16,
+      "labelsGap": 32.27,
       "origin": [
-        804,
-        344
+        633,
+        830
       ]
     },
     "Bloco9": {
@@ -201,11 +205,11 @@
         "D",
         "E"
       ],
-      "bubblesGap": 42,
-      "labelsGap": 24.5,
+      "bubblesGap": 33.16,
+      "labelsGap": 32.29,
       "origin": [
-        804,
-        605
+        633,
+        1194
       ]
     }
   }
